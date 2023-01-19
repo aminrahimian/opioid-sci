@@ -1,3 +1,8 @@
+##### This R script consists of multiple linear regression and Wtd Multiple Linear Regression##
+### R Version 4.1.1###
+#### Covariates used ODR, Naloxone, HH income per capita, Illicit drug seizures and are scaled##
+#### Results illustrates statistically significant effect size for socail proximity in MlR##
+#### Have to explore and add factors for SDOH (Social Determinants of Health)
 library(tidyverse)
 library(igraph)
 library(zipcodeR)
@@ -73,11 +78,7 @@ Soc.2017 <- Soc.2017 %>% mutate(NAME=str_replace_all(Soc.2017$NAME,"County, Penn
 Soc.2017 <- Soc.2017[,-c(3,5,6)]
 colnames(Soc.2017)[3] <- "population"
 Soc.2017
-
 census_data_frame <- merge(Soc.2017,pa_hh_income,by="NAME")
-strong_proximity_counties <- c('Erie', 'Crawford ','Venango', ' Mercer', 'Lawrence', 'Butler', 'Armstrong ','Lebanon ','Lancaster','Chester','Delaware','Philadelphia','Bucks','Lehigh')
-weak_proximity_counties <- c('Waren', 'Mckean','Forest','Somrest','Bedford','Fulton','Fayette','Allegheny')
-census_data_frame_1 <- census_data_frame %>% filter(NAME %in% strong_proximity_counties)
 
 
 #### nvss 2013-2015 data###
@@ -88,6 +89,7 @@ ood_data_2013_2015$dod <- as.Date(ood_data_2013_2015$dod)
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(between(dod,as.Date('2013-01-01'), as.Date('2015-01-01')))
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40","X41","X42","X43","X44"))
 deaths_in_county_in_2013_2015 <- count(ood_data_2013_2015,county_name)                          
+
 data_2016_2017 <- read.csv('Combined_Drug_2016_2017.csv')
 ## This is a private data set of opioid-related deaths in PA that include location and cause 
 table(data_2016_2017$COD)
@@ -107,12 +109,12 @@ deaths_in_county_in_2016_2017 [66,1] <- "CAMERON"
 deaths_in_county_in_2016_2017 [66,2] <- 1
 deaths_in_county_in_2016_2017 [67,1] <- "FOREST"
 deaths_in_county_in_2016_2017 [67,2] <- 1
-deaths_in_county_in_2016_2017  <- n_ood_pa[order(n_ood_pa$County),]
+deaths_in_county_in_2016_2017  <- deaths_in_county_in_2016_2017[order(deaths_in_county_in_2016_2017$County),]
 aggregated_ood_deaths_2013_2017 <- cbind(deaths_in_county_in_2013_2015,deaths_in_county_in_2016_2017 )
 colnames(aggregated_ood_deaths_2013_2017)[2] <- 'deaths_2013_2015'
 aggregated_ood_deaths_2013_2017 <- aggregated_ood_deaths_2013_2017 %>% mutate(n=n+deaths_2013_2015)
 aggregated_ood_deaths_2013_2017 <- aggregated_ood_deaths_2013_2017[,-c(2,3)]
-county_wise_ood_with_demogrpahic_information <- cbind(n_ood_pa,Soc.2017)
+county_wise_ood_with_demogrpahic_information <- cbind(aggregated_ood_deaths_2013_2017,Soc.2017)
 county_wise_ood_with_demogrpahic_information <- county_wise_ood_with_demogrpahic_information[,-4]
 county_wise_ood_with_demogrpahic_information <- county_wise_ood_with_demogrpahic_information %>% mutate(ood_percapita <- n/population)
 colnames(county_wise_ood_with_demogrpahic_information)[1] <- "NAME"
@@ -126,19 +128,18 @@ colnames(aggregated_ood_per_capita_events_in_each_county)[2] <- "deaths_per_capi
 #### sci_proximity####
 df_0 <- read_tsv ('county_county.tsv')
 df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000)) 
-df_1 <- df_0 %>% dplyr::filter(user_loc %in% 42001:42133 & fr_loc %in% 42001:42133)
-df_1 <- unique(df_1)
-df_1 <- df_1 %>% distinct(probabilites,.keep_all = TRUE) ##single repeated pairwise comparisons for sci
-user_loc <- df_1 %>% distinct(user_loc)
+df_1 <- df_0 %>% dplyr::filter(user_loc %in% aggregated_ood_per_capita_events_in_each_county$fr_loc & fr_loc %in% aggregated_ood_per_capita_events_in_each_county$fr_loc)
+df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
+df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
+df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc)))) ##unique pairs + self loops
 df_s <- merge(df_1,aggregated_ood_per_capita_events_in_each_county,by="fr_loc")
 df_s <- df_s %>% mutate(wt_sci=probabilites*deaths_per_capita)
 dataframe_for_matrix <- df_s %>% dplyr::select(c(user_loc,fr_loc,wt_sci))
 nodes <- df_s %>% distinct(user_loc)
-
 g <- graph.data.frame(dataframe_for_matrix, directed=F, vertices=nodes)
 sci_proximity <- as_adjacency_matrix(g,attr = "wt_sci",sparse = F)
 diag(sci_proximity) <- 0
-write.csv(sci_proximity,'sci_proximity.csv')
+#write.csv(sci_proximity,'sci_proximity.csv')
 df_for_matrix_probability <- df_s %>% dplyr::select(c(user_loc,fr_loc,probabilites))
 df_for_matrix_probability
 k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
@@ -178,8 +179,8 @@ county_distance_proximity
 county_wise_ood_deaths_per_capita <- aggregated_ood_per_capita_events_in_each_county$deaths_per_capita
 county_physical_proximity_dij <- sweep(county_distance_proximity,2,county_wise_ood_deaths_per_capita ,FUN="*")
 county_normalised_physical_porximity <- sweep(county_physical_proximity_dij,2,normalised_scale,FUN="/")
-deaths_physical_proximity=rowSums(county_normalised_physical_porximity)
-deaths_physical_proximity
+deaths_spatial_proximity_county=rowSums(county_normalised_physical_porximity)
+deaths_spatial_proximity_county
 ####### naloxone adminitered###
 naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
 data_naloxone <- naloxone
@@ -200,12 +201,8 @@ colnames(ODR)[2] <- 'State'
 colnames(ODR)[3] <- 'Fips Codes'
 colnames(ODR)[4] <- 'Opioid Dispensing Rate Per 100'
 ODR <- ODR %>% mutate(county= gsub("(.*),.*", "\\1", ODR$county))
-
-#### SVI #### (still have to find an alternative)
-#SVI <- read.csv('Pennsylvania_COUNTY.csv')
-#SVI <- SVI$RPL_THEMES
-
-
+ODR$`Opioid Dispensing Rate Per 100` <- as.integer(as.character(ODR$`Opioid Dispensing Rate Per 100`))
+ODR$ODR <- scale(ODR$`Opioid Dispensing Rate Per 100`)
 ### illicit drug source ###
 library(lubridate)
 illicit_opioid_Seizures <- read.csv("https://data.pa.gov/api/views/wmgc-6qvd/rows.csv?accessType=DOWNLOAD")
@@ -215,43 +212,32 @@ illicit_opioid_Seizures <- illicit_opioid_Seizures %>% filter(between(Qtr.Start.
 illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME_Coversion_Factor=case_when(Drug == "Fentanyl" ~ 0.125, Drug == "Heroin" ~ 1, Drug == "Opium" ~ 1 ))
 illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(Drug.Quantity_mmg = Drug.Quantity/1000)
 illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME = Drug.Quantity*MME_Coversion_Factor)
-#illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME=scale(MME))
 illicit_opioid_Seizures_2013_2017 <- illicit_opioid_Seizures %>% group_by(County.Name) %>%  summarise(sum(MME))
 colnames(illicit_opioid_Seizures_2013_2017)[1] <- "county"
 colnames(illicit_opioid_Seizures_2013_2017)[2] <- "MME"
-#county <- c("Cameron", "Elk","Forest", "McKean", "Potter", "Sullivan", "Warren" )
-#drug_quantity_kilogram <- c(0,0,0,0,0,0,0)
-#mdf <- data.frame(county,drug_quantity_kilogram)
-#illicit_drug_busted_per_quantity <- rbind(illicit_data_2016_2017,mdf)
-#illicit_drug_busted_per_quantity <- illicit_drug_busted_per_quantity[order(illicit_drug_busted_per_quantity$county),]
 nvss_ood_county_wise_2013_2017 <-Soc.2017
 nvss_ood_county_wise_2013_2017 <- cbind(Soc.2017,county_wise_ood_with_demogrpahic_information)
 nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(4,6,7)]
 nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,df)
 nvss_ood_county_wise_2013_2017$county_deaths_social_proximity <- deaths_social_proximity_county
-nvss_ood_county_wise_2013_2017$county_deaths_spatial_proximity <- deaths_physical_proximity
-nvss_ood_county_wise_2013_2017$ODR <- ODR$`Opioid Dispensing Rate Per 100`
+nvss_ood_county_wise_2013_2017$county_deaths_spatial_proximity <- deaths_spatial_proximity_county
+nvss_ood_county_wise_2013_2017$ODR <- ODR$ODR
 nvss_ood_county_wise_2013_2017$naloxone <- data_naloxone$naloxone_per_capita
 nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- illicit_opioid_Seizures_2013_2017$MME
-nvss_ood_county_wise_2013_2017$ODR <- scale(as.numeric(nvss_ood_county_wise_2013_2017$ODR))
 nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- scale(nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county)
-nvss_ood_county_wise_2013_2017$hh_income <- scale(pa_hh_income$estimate)
+nvss_ood_county_wise_2013_2017$hh_income <- scale(pa_hh_income$estimate/nvss_ood_county_wise_2013_2017$population)
 write.csv(nvss_ood_county_wise_2013_2017, 'nvss_ood_county_wise_2013_2017.csv')
 
-#county_final_df$SVI <- SVI
-#### output code###
-#county_final_df <- county_final_df %>% mutate(sp_county=log(social_proximity))
-#county_final_df <- county_final_df %>% mutate(dp=log(deaths_physical_proximity_county))
-#write.csv(county_final_df,'spatial_nvss_data.csv')
+### Multiple Linear regression and Wtd Linear Regression #####
+nvss_ood_county_wise_2013_2017 <- read.csv("nvss_ood_county_wise_2013_2017.csv")
+glimpse(nvss_ood_county_wise_2013_2017)
+nvss_county_county_aggregated_regression <- summary(lm(deaths_per_capita~ log(county_deaths_social_proximity)+log(county_deaths_spatial_proximity)+ODR+naloxone+illicit_drug_seizures_mme_per_county+hh_income, data=nvss_ood_county_wise_2013_2017))
+nvss_county_county_aggregated_regression
+nvss_county_county_aggregated_wt_regression <- summary(lm(deaths_per_capita~ log(county_deaths_social_proximity)+log(county_deaths_spatial_proximity)+ODR+naloxone+illicit_drug_seizures_mme_per_county+hh_income, weights=population, data=nvss_ood_county_wise_2013_2017))
+nvss_county_county_aggregated_wt_regression 
 
-county_ols_nvss <- lm(deaths_per_capita~ log(deaths_physical_proximity_county)+ log(social_proximity)+illicit_drug_busted_per_quantity_kg+ODR+ naloxone,data=nvss_ood_county_wise_2013_2017)
-county_ols_nvss_wts <- lm(deaths_per_capita~ log(deaths_physical_proximity_county)+ log(social_proximity)+ODR+ naloxone, weights=population, data=county_final_df_nvss)
-county_ols_data_pa <- lm(deaths_per_capita~ log(deaths_physical_proximity_county)+ log(deaths_social_proximity_county)+illicit_drug_busted_per_quantity_kg+ODR+ naloxone,data=county_final_df_incident)
-county_ols_data_pa_wts <- lm(deaths_per_capita~ log(deaths_physical_proximity_county)+ log(deaths_social_proximity_county)+illicit_drug_busted_per_quantity_kg+ODR+ naloxone,wts=population, data=county_final_df_incident)
 
-summary(county_ols_nvss)
-summary(county_ols_data_pa)
-summary(county_ols_nvss_wts)
 
-qqplot(county_ols$residuals)
+
+
 
