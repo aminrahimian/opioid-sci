@@ -31,15 +31,21 @@ knn6 <- knn2nb(knearneigh(coords, k =66))
 dist <- nbdists(knn6, coords, longlat = TRUE)
 ids <- lapply(dist, function(x) 1/(x))
 ids
-invd.weights.knn <- nb2listw(knn6,glist = ids,style = "B",zero.policy = T)
+invd.weights.knn <- nb2listw(knn6,glist = ids,style = "S",zero.policy = T)
 invd.weights.knn$weights[1]
+
+
+
 ##### spatial regression ####
 library(spatialreg)
 serrRslt <- spatialreg::errorsarlm(deaths_per_capita ~ log(county_deaths_social_proximity) +
                                      log(county_deaths_spatial_proximity) + illicit_drug_seizures_mme_per_county + 
-                                     ODR + naloxone+hh_income ,
+                                     naloxone+hh_income ,
                                    data = PA,
                                    listw = invd.weights.knn,
                                    zero.policy = TRUE, 
                                    na.action = na.omit)
 summary(serrRslt)
+
+
+
