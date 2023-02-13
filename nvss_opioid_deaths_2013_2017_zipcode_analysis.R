@@ -32,6 +32,7 @@ ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(between(dod,as.Date('2013-01
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40","X41","X42","X43","X44"))
 ##f_i dataframe to store zip code wise deaths from 2013-2015, n represents deaths)
 zip_code_wise_deaths_2013_2015 <- count(ood_data_2013_2015,zip_new) 
+colnames(zip_code_wise_deaths_2013_2015)[1] <- "zipcode"
 ###### missing_zip_codes data 2013-2015 and 2015-2017
 missing_zip_codes_2013_2015 <- setdiff(zip_code_wise_deaths_2016_2017$zipcode,zip_code_wise_deaths_2013_2015$zip_new)
 missing_zip_codes_2016_2017 <- setdiff(zip_code_wise_deaths_2013_2015$zip_new,zip_code_wise_deaths_2016_2017$zipcode)
@@ -39,9 +40,10 @@ ood_for_missing_zip_codes_2013_2015 <- zip_code_wise_deaths_2016_2017 %>% filter
 ood_for_missing_zip_codes_2016_2017 <- zip_code_wise_deaths_2013_2015 %>% filter(zip_new %in% missing_zip_codes_2016_2017)
 colnames(ood_data_2013_2015)[1] <- "zipcode"
 ### aggregating 2013-2017 ood death ###
-aggregated_ood_2013_2017_zip_codes <- merge.data.frame(zip_code_wise_deaths_2016_2017,zip_code_wise_deaths_2013_2015)
+### (this is the wrong step)
+aggregated_ood_2013_2017_zip_codes <- merge(zip_code_wise_deaths_2016_2017,zip_code_wise_deaths_2013_2015, by="zipcode")
 aggregated_ood_2013_2017_zip_codes <- aggregated_ood_2013_2017_zip_codes %>% mutate(deaths=deaths+n)
-aggregated_ood_2013_2017_zip_codes <- aggregated_ood_2013_2017_zip_codes[,-c(3,4)]
+aggregated_ood_2013_2017_zip_codes <- aggregated_ood_2013_2017_zip_codes[,-c(3)]
 aggregated_ood_2013_2017_zip_codes <- rbind(aggregated_ood_2013_2017_zip_codes,ood_for_missing_zip_codes_2013_2015)
 colnames(ood_for_missing_zip_codes_2016_2017)[1] <- "zipcode"
 colnames(ood_for_missing_zip_codes_2016_2017)[2] <- "deaths"
@@ -75,14 +77,12 @@ df_1 <- df_0 %>% dplyr::filter(user_loc %in% nvss_zipcodes & fr_loc %in% nvss_zi
 df_1 <- df_1 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000))
 left_over_zip_codes <- nvss_zipcodes[!(nvss_zipcodes %in% df_1$user_loc)]
 df_ood_nvss_zipcode_level<- df_ood_nvss_zipcode_level[ ! df_ood_nvss_zipcode_level$zipcode %in% left_over_zip_codes, ]
-df_1 <- df_1 %>% distinct(probabilites,.keep_all = TRUE)
+df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc))))
 #### q_i stores zipcode wise deathspercapita aggregated over temporal window from 2013-2017####
 q_i <- df_ood_nvss_zipcode_level[,c(1,26)]
 colnames(q_i)[1] <- "fr_loc"
 df_s <- merge(df_1,q_i,by ="fr_loc")
 df_s <- df_s %>% mutate(wt_sci=probabilites*deaths_per_capita)
-df_s <- df_s %>% distinct(probabilites,.keep_all = TRUE)
-df_s
 dataframe_for_matrix <- df_s %>% dplyr::select(c(user_loc,fr_loc,wt_sci))
 nodes <- df_s %>% distinct(user_loc)
 g <- graph.data.frame(dataframe_for_matrix, directed=F, vertices=nodes)
