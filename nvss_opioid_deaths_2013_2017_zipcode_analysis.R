@@ -32,13 +32,14 @@ ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(between(dod,as.Date('2013-01
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40","X41","X42","X43","X44"))
 ##f_i dataframe to store zip code wise deaths from 2013-2015, n represents deaths)
 zip_code_wise_deaths_2013_2015 <- count(ood_data_2013_2015,zip_new) 
-colnames(zip_code_wise_deaths_2013_2015)[1] <- "zipcode"
+colnames(zip_code_wise_deaths_2013_2015)[1] <- "zip_new"
 ###### missing_zip_codes data 2013-2015 and 2015-2017
 missing_zip_codes_2013_2015 <- setdiff(zip_code_wise_deaths_2016_2017$zipcode,zip_code_wise_deaths_2013_2015$zip_new)
 missing_zip_codes_2016_2017 <- setdiff(zip_code_wise_deaths_2013_2015$zip_new,zip_code_wise_deaths_2016_2017$zipcode)
 ood_for_missing_zip_codes_2013_2015 <- zip_code_wise_deaths_2016_2017 %>% filter(zipcode %in% missing_zip_codes_2013_2015)
 ood_for_missing_zip_codes_2016_2017 <- zip_code_wise_deaths_2013_2015 %>% filter(zip_new %in% missing_zip_codes_2016_2017)
 colnames(ood_data_2013_2015)[1] <- "zipcode"
+colnames(zip_code_wise_deaths_2013_2015)[1] <- "zipcode"
 ### aggregating 2013-2017 ood death ###
 ### (this is the wrong step)
 aggregated_ood_2013_2017_zip_codes <- merge(zip_code_wise_deaths_2016_2017,zip_code_wise_deaths_2013_2015, by="zipcode")
@@ -136,7 +137,7 @@ download_zip_data(force = FALSE)
 data_zip <- zip_code_db
 data_zip_for_ODR <- df_ood_nvss_zipcode_level %>% filter(zipcode %in% zip_code)
 data_zip_for_ODR<- data_zip_for_ODR %>% mutate(county = str_remove_all(county, "County"))
-data_zip_for_ODR_1 <- data_zip_for_ODR %>% select(county,state)
+data_zip_for_ODR_1 <- data_zip_for_ODR %>% dplyr::select(county,state)
 unique_county_for_ODR <- unique(data_zip_for_ODR_1)
 
 data_zip$county <- as.factor(data_zip$county)
@@ -168,7 +169,7 @@ ODR_1 <- stringdist_join(data_zip_for_ODR, ODR,
   group_by(county.x) %>%
   slice_min(order_by=dist, n=1)
 ODR_1 <- ODR_1 %>% filter(zipcode %in% zip_code)
-ODR_2 <- ODR_1 %>% select("zipcode","Opioid Dispensing Rate Per 100")
+ODR_2 <- ODR_1 %>% dplyr::select("zipcode","Opioid Dispensing Rate Per 100")
 
 df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,ODR_2, by="zipcode")
 df_ood_nvss_zipcode_level<- df_ood_nvss_zipcode_level[,-29]
@@ -217,33 +218,90 @@ nzr <- nzr[,c(2,4)]
 df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,nzr,by="zipcode")
 df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% mutate(naloxone_administered_per_zip_code= scale(naloxone_administered_per_zip_code))
 ########## ADI#####
-PA_ZIP <- read.delim('./GitHub/opioid-sci/PA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep=',')
+#PA_ZIP <- read.delim('./GitHub/opioid-sci/PA_2015_ADI_9 Digit Zip Code_v3.1.txt', sep=',')
 ## The 2015 ADI data set is downloaded from UW-Madison Neighborhood Atlas:
 ## https://www.neighborhoodatlas.medicine.wisc.edu/download
-zips <- PA_ZIP %>% mutate(zip=str_extract(ZIPID,'\\d{5}'))
+#zips <- PA_ZIP %>% mutate(zip=str_extract(ZIPID,'\\d{5}'))
 #zips <- zips[,-c(1,2,10)]
-zips_adi_Staternk <- zips[,c(9,10)]
-zips_adi_Staternk$zip <- as.integer(zips_adi_Staternk$zip)
-zips_adi_Staternk <- zips_adi_Staternk %>% filter(zip %in% zip_code )
-zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "PH")
-zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "GQ")
-zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "PH-GQ")
-zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "GQ-PH")
-zips_adi_Staternk$ADI_STATERNK <- as.integer(zips_adi_Staternk$ADI_STATERNK)
-zips_adi_Staternk <- zips_adi_Staternk %>% drop_na()
-zips_adi_Staternk$zips_factor <- as.factor(zips_adi_Staternk$zip)
-zip_wise_adi <- aggregate(zips_adi_Staternk$ADI_STATERNK, list(zips_adi_Staternk$zip), FUN=mean)
-zip_wise_adi <- zip_wise_adi %>% filter(Group.1 %in% zip_code)
-colnames(zip_wise_adi)[1] <- "zip"
-colnames(zip_wise_adi)[2] <- "adi_net_rank"
-zip_wise_adi <- zip_wise_adi %>% mutate(adi_net_rank=scale(adi_net_rank))
-colnames(zip_wise_adi)[1] <- "zipcode"
-df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,zip_wise_adi,by="zipcode")
+#zips_adi_Staternk <- zips[,c(9,10)]
+#zips_adi_Staternk$zip <- as.integer(zips_adi_Staternk$zip)
+#zips_adi_Staternk <- zips_adi_Staternk %>% filter(zip %in% zip_code )
+#zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "PH")
+#zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "GQ")
+#zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "PH-GQ")
+#zips_adi_Staternk <- zips_adi_Staternk %>% filter(ADI_STATERNK != "GQ-PH")
+#zips_adi_Staternk$ADI_STATERNK <- as.integer(zips_adi_Staternk$ADI_STATERNK)
+#zips_adi_Staternk <- zips_adi_Staternk %>% drop_na()
+#zips_adi_Staternk$zips_factor <- as.factor(zips_adi_Staternk$zip)
+#zip_wise_adi <- aggregate(zips_adi_Staternk$ADI_STATERNK, list(zips_adi_Staternk$zip), FUN=mean)
+#zip_wise_adi <- zip_wise_adi %>% filter(Group.1 %in% zip_code)
+#colnames(zip_wise_adi)[1] <- "zip"
+#colnames(zip_wise_adi)[2] <- "adi_net_rank"
+#zip_wise_adi <- zip_wise_adi %>% mutate(adi_net_rank=scale(adi_net_rank))
+#colnames(zip_wise_adi)[1] <- "zipcode"
+#df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,zip_wise_adi,by="zipcode")
+#write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
+
+##### health determinant ####
+#############################
+zip_codes_in_df_ood_nvss_for_sdoh <- df_ood_nvss_zipcode_level$zipcode
+health_determinant <- read.csv('zipcode_2017.csv')
+health_determinant_zip <- health_determinant %>% dplyr::filter(health_determinant$STATE== "Pennsylvania")
+health_determinant_zip <- health_determinant_zip %>% dplyr::select(c('ZCTA', 'STATE' , 'ACS_PCT_SMARTPHONE', 'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC99', 'ACS_MEDIAN_HH_INCOME', 'CCBP_RATE_BWLSTORES_PER_1000', 'ACS_PCT_NO_VEH'))
+health_determinant_zip <- health_determinant_zip %>% dplyr::filter(ZCTA %in% zip_codes_in_df_ood_nvss_for_sdoh)
+health_determinant_zip <- health_determinant_zip %>% replace(is.na(.), 0)
+health_determinant_zip_covariates <- health_determinant_zip[,c(3:8)]
+health_determinant_zip_covariates <- scale(health_determinant_zip_covariates)
+df_ood_nvss_zipcode_level <- cbind(df_ood_nvss_zipcode_level,health_determinant_zip_covariates)
+
 write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
+
+
+#### covariate selection using lasso####
+library(glmnet)
+library(caret)
+x <- df_ood_nvss_zipcode_level[,c(27,28,30,31,32,33,34,35,36)]
+x <- as.matrix(x)
+y <- as.matrix(df_ood_nvss_zipcode_level$deaths_per_capita)
+set.seed(123)
+index <- createDataPartition(df_ood_nvss_zipcode_level$deaths_per_capita, p = 0.8, list = FALSE)
+x_train <- x[index, ]
+y_train <- y[index]
+x_test <- x[-index, ]
+y_test <- y[-index]
+cv.fit <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
+plot(cv.fit)
+lambda_best <- cv.fit$lambda.min
+fit <- glmnet(x, y, alpha = 1)
+coef(fit, s = lambda_best)
+
 ### regressions###
-summary(m3<-lm(deaths_per_capita~deaths_per_capita+log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+ODR+naloxone_administered_per_zip_code+adi_net_rank, weights=population,data=df_ood_nvss_zipcode_level))
+summary(m3<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=1/population,data=df_ood_nvss_zipcode_level))
+summary(m3.1<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=population,data=df_ood_nvss_zipcode_level))
+
 ### library(pscl)for zero inflated regression
 library(pscl)
-summary(m4 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity) +ODR+naloxone_administered_per_zip_code+ adi_net_rank+scale(population), data = df_ood_nvss_zipcode_level))
+summary(m4 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data = df_ood_nvss_zipcode_level, dist="negbin"))
+summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data = df_ood_nvss_zipcode_level))
 
 ### git commit message -m "nvss aggregated data 2013 2017 with padded zeroes at ZIP CODE level"
+library(sp)
+library(spdep)
+lng <- df_ood_nvss_zipcode_level$lng
+lat <- df_ood_nvss_zipcode_level$lat
+
+pts <- SpatialPointsDataFrame(coords = cbind(lng, lat), data = data.frame(df_ood_nvss_zipcode_level))
+
+# Create a KNN graph
+knn.graph <- dnearneigh(x = cbind(lng, lat), k = 1255, d1 = "euclidean")
+knn.graph <- dnearneigh(x = cbind(lng, lat), k = 1255, d1 = "Minkowski", d2 = 2)
+
+
+
+
+knn.graph <- knn2nb(knearneigh(x = cbind(lng, lat), k = 1252), row.names = NULL)
+w <- nb2listw(knn.graph, style = "B", zero.policy = TRUE)
+inv_w <- 1/w$weights
+inv_dist_w <- nb2listw(knn2nb(knearneigh(coordinates(data), k = 1255), row.names = NULL), glist = list(listw = inv_w), style = "W", zero.policy = TRUE)
+
+
