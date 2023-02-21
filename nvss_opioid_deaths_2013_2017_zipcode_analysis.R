@@ -276,32 +276,68 @@ fit <- glmnet(x, y, alpha = 1)
 coef(fit, s = lambda_best)
 
 ### regressions###
-summary(m3<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=1/population,data=df_ood_nvss_zipcode_level))
-summary(m3.1<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=population,data=df_ood_nvss_zipcode_level))
+summary(m3<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=population,data=df_ood_nvss_zipcode_level))
+summary(m3.1<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data=df_ood_nvss_zipcode_level))
+summary(m3)
+lm.morantest(m3, invd.weights.knn, zero.policy = TRUE)
+
+hist(nvss_ood_county_wise_2013_2017$n, bins)
 
 ### library(pscl)for zero inflated regression
+df_ood_nvss_zipcode_level <- read.csv('aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
+
+
+
 library(pscl)
-summary(m4 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data = df_ood_nvss_zipcode_level, dist="negbin"))
-summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data = df_ood_nvss_zipcode_level))
+summary(m4 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH+scale(population),data = df_ood_nvss_zipcode_level, dist="negbin"))
+summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH+scale(population),data = df_ood_nvss_zipcode_level))
 
 ### git commit message -m "nvss aggregated data 2013 2017 with padded zeroes at ZIP CODE level"
+
 library(sp)
 library(spdep)
-lng <- df_ood_nvss_zipcode_level$lng
-lat <- df_ood_nvss_zipcode_level$lat
+library(spatialreg)
+lng <- as.numeric(df_ood_nvss_zipcode_level$lng)
+lat <- as.numeric(df_ood_nvss_zipcode_level$lat)
+pts <- SpatialPoints(coords = cbind(lng, lat), proj4string = CRS("+proj=longlat +datum=WGS84"))
+knn6 <- knn2nb(knearneigh(pts, k=35, longlat = TRUE), sym=FALSE)
+#plot(PA, border = 'lightgrey')
+invd.weights.knn <- nb2listw(knn6,style = "W",zero.policy = TRUE)
+invd.weights.knn$weights[1]
+#### SPATIAL ERROR REGRESSION
 
-pts <- SpatialPointsDataFrame(coords = cbind(lng, lat), data = data.frame(df_ood_nvss_zipcode_level))
+ZIPCODE_SPATIAL_1 <- errorsarlm(df_ood_nvss_zipcode_level$deaths_per_capita ~ deaths_sci_proximity_zip+ deaths_physical_proximity+ ACS_PCT_NO_VEH+ACS_PCT_UNEMPLOY+ACS_MEDIAN_HH_INCOME+ACS_PCT_SMARTPHONE+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_PERSON_INC99+naloxone_administered_per_zip_code,data=df_ood_nvss_zipcode_level,
+                              listw = invd.weights.knn,
+                              zero.policy = TRUE,
+                              weights = df_ood_nvss_zipcode_level$population,
+                              na.action = na.omit)
+summary(ZIPCODE_SPATIAL)
 
-# Create a KNN graph
-knn.graph <- dnearneigh(x = cbind(lng, lat), k = 1255, d1 = "euclidean")
-knn.graph <- dnearneigh(x = cbind(lng, lat), k = 1255, d1 = "Minkowski", d2 = 2)
+################## CV###
+
+find_best_k <- function(data, formula, knn_range, weight_var, listw) {
+  aic_values <- c()
+  bic_values <- c()
+  
+  for (k in knn_range) {
+    knn <- knn2nb(knearneigh(data, k=k, longlat = TRUE), sym=FALSE)
+    invd.weights.knn <- nb2listw(knn, style = "W", zero.policy = TRUE)
+    model <- errorsarlm(formula, data = data, listw = invd.weights.knn, 
+                        zero.policy = TRUE, weights = data[[weight_var]], 
+                        na.action = na.omit)
+    aic_values[k] <- AIC(model)
+    bic_values[k] <- BIC(model)
+  }
+  
+  best_k_aic <- knn_range[which.min(aic_values)]
+  best_k_bic <- knn_range[which.min(bic_values)]
+  
+  return(list(best_k_aic = best_k_aic, best_k_bic = best_k_bic))
+}
+formula= deaths_per_capita ~ deaths_sci_proximity_zip+ deaths_physical_proximity+ ACS_PCT_NO_VEH+ACS_PCT_UNEMPLOY+ACS_MEDIAN_HH_INCOME+ACS_PCT_SMARTPHONE+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_PERSON_INC99+naloxone_administered_per_zip_code
+knn_range= c(5,10,15,20,25,30,35,40,45,50)
+find_best_k(df_ood_nvss_zipcode_level,formula,knn_range,df_ood_nvss_zipcode_level$population,listw)
 
 
-
-
-knn.graph <- knn2nb(knearneigh(x = cbind(lng, lat), k = 1252), row.names = NULL)
-w <- nb2listw(knn.graph, style = "B", zero.policy = TRUE)
-inv_w <- 1/w$weights
-inv_dist_w <- nb2listw(knn2nb(knearneigh(coordinates(data), k = 1255), row.names = NULL), glist = list(listw = inv_w), style = "W", zero.policy = TRUE)
 
 
