@@ -161,34 +161,40 @@ data_naloxone$naloxone_per_capita <- scale(data_naloxone$Cumulative.Kits.Provide
 health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/county_2017.csv')
 health_determinant <- health_determinant %>% dplyr::filter(health_determinant$STATE== "Pennsylvania")
 health_determinant <- health_determinant %>% dplyr::select(c('COUNTY', 'FIPSCODE' , 'ACS_PCT_SMARTPHONE', 'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC99', 'ACS_MEDIAN_HH_INCOME', 'CCBP_RATE_BWLSTORES_PER_1000', 'CHR_HOMICIDES', 'ACS_PCT_NO_VEH', 'AHRF_COMM_HLTH_CNTR', 'AHRF_MENTL_HLTH_CNT', 'CHR_SMOKING', 'CHR_MENTAL_DISTRESS', 'AMFAR_HIVDIAGNOSED'))
+county_name_and_fips_value <- data.frame(health_determinant[1:2])
 scaled_health_determinant <- data.frame(health_determinant[3:14])
-county_final_df <- scale(health_determinant[,c(3:14)])
+scaled_health_determinant <- scaled_health_determinant %>% replace(is.na(.), 0)
+county_final_df <- data.frame(scale(scaled_health_determinant))
 county_final_df$deaths_social_proximity_county <- deaths_social_proximity_county
-county_final_df$deaths_spatial_proximity_county <- deaths_physical_proximity
+county_final_df$deaths_spatial_proximity_county <- deaths_spatial_proximity_county
 county_final_df$naloxone_administered_per_county <- data_naloxone$naloxone_per_capita
+county_final_df <- cbind(county_name_and_fips_value,county_final_df)
+county_final_df$deaths_per_capita <- q_i$deaths_per_capita
 write.csv(county_final_df, 'county_final_df_pa_gov.csv')
-#########################################
+########### lasso based variable selection ####
+x <- county_final_df[,c(3,4,5,6,7,8,9,10,11,12,13,14,15,16,17)]
+x <- as.matrix(x)
+y <- as.matrix(county_final_df$deaths_per_capita)
+set.seed(123)
+index <- createDataPartition(county_final_df$deaths_per_capita, p = 0.5, list = FALSE)
+x_train <- x[index, ]
+y_train <- y[index]
+x_test <- x[-index, ]
+y_test <- y[-index]
+cv.fit <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
+#plot(cv.fit)
+lambda_best <- cv.fit$lambda.min
+fit <- glmnet(x, y, alpha = 1)
+coef(fit, s = lambda_best)
+##### new data frame based on the selected covariates###
+incident_data_pa_gov <- county_final_df[,c(1,2,4,5,6,7,8,10,11,14,15,16,18)]
+##### network autocorrelation model ###
 
 
 
 
 
 
-
-#### odr###
-url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
-sites <- url %>% html_nodes('td') %>% html_text()
-sites_1 <- sites[8977:9244]
-sites_2 <- data.frame(print(sites_1))
-ODR <- as.data.frame(t(matrix(sites_2[,1],nrow = 4)))
-colnames(ODR)[1] <- 'county'
-colnames(ODR)[2] <- 'State'
-colnames(ODR)[3] <- 'Fips Codes'
-colnames(ODR)[4] <- 'Opioid Dispensing Rate Per 100'
-ODR <- ODR %>% mutate(county= gsub("(.*),.*", "\\1", ODR$county))
-##### SVI#####
-SVI <- read.csv('Pennsylvania_COUNTY.csv')
-SVI <- SVI$RPL_THEMES
 
 
 
