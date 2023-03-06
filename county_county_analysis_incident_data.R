@@ -108,14 +108,16 @@ nodes <- df_s %>% distinct(user_loc)
 g <- graph.data.frame(dataframe_for_matrix, directed=F, vertices=nodes)
 sci_proximity <- as_adjacency_matrix(g,attr = "wt_sci",sparse = F)
 diag(sci_proximity) <- 0
+numerator <- colSums(sci_proximity)
 df_for_matrix_probability <- df_s %>% dplyr::select(c(user_loc,fr_loc,probabilites))
 df_for_matrix_probability
 k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
 cumulative_sci <- as_adjacency_matrix(k,attr="probabilites",sparse=F)
+diag(cumulative_sci) <- 0
 row_wise_sum_sci <- rowSums(cumulative_sci)
 row_wise_sum_sci
 sci_proximity_county <- sweep(sci_proximity,2,row_wise_sum_sci,FUN="/")
-deaths_social_proximity_county<- rowSums(sci_proximity_county)
+deaths_social_proximity_county<- scale(colSums(sci_proximity_county))
 
 #### physical proximity county ###
 naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
@@ -131,6 +133,7 @@ df$Latitude <-as.numeric(df$Latitude)
 distance_matrix <- geodist(df, measure = 'geodesic' )/1000 #converting it to km
 distance_matrix <- (1+distance_matrix)
 distance_matrix<- distance_matrix**(-1)
+diag(distance_matrix) <- 0
 colnames(distance_matrix) <- df$county
 rownames(distance_matrix) <- df$county
 d_i_j<- data.frame(distance_matrix)
@@ -144,8 +147,8 @@ county_distance_proximity
 v <- q_i$deaths_per_capita
 county_physical_proximity_dij <- sweep(county_distance_proximity,2,v,FUN="*")
 county_normalised_physical_porximity <- sweep(county_physical_proximity_dij,2,normalised_scale,FUN="/")
-deaths_spatial_proximity_county=rowSums(county_normalised_physical_porximity)
-deaths_spatial_proximity_county
+deaths_spatial_proximity_county=colSums(county_normalised_physical_porximity)
+scale(deaths_spatial_proximity_county)
 
 #### nalaxone administered per county ###
 naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
@@ -188,12 +191,65 @@ fit <- glmnet(x, y, alpha = 1)
 coef(fit, s = lambda_best)
 ##### new data frame based on the selected covariates###
 incident_data_pa_gov <- county_final_df[,c(1,2,4,5,6,7,8,10,11,14,15,16,18)]
+incident_data_pa_gov$population <- census_data_frame$population
 ##### network autocorrelation model ###
+library(spatialreg)
+library(spdep)
+df_0 <- read_tsv ('C:/Users/kusha/Desktop/Data for Paper/SCI/county_county.tsv')
+df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000)) 
+df_1 <- df_0 %>% dplyr::filter(user_loc %in% q_i$fr_loc & fr_loc %in% q_i$fr_loc)
+df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
+df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
+df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc)))) ##unique pairs + self loops
+df_for_matrix_probability <- df_1 %>% dplyr::select(c(user_loc,fr_loc,probabilites))
+df_for_matrix_probability
+nodes <- df_1 %>% distinct(user_loc)
+k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
+sci_matrix <- as_adjacency_matrix(k,attr="probabilites",sparse=F)
+diag(sci_matrix) <- 0
+row_sums <- rowSums(sci_matrix)
+# Divide each row by its sum
+sci_matrix_norm <- sweep(sci_matrix, 1, row_sums, "/")
+sci_proximity_mat_county <- as.matrix(sci_matrix_norm)
+lw_4 <- mat2listw(sci_proximity_mat_county)
+incident_social <- errorsarlm(deaths_per_capita~log(deaths_social_proximity_county)+log(deaths_spatial_proximity_county)+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+CHR_HOMICIDES+AHRF_COMM_HLTH_CNTR+AHRF_MENTL_HLTH_CNT+AMFAR_HIVDIAGNOSED,data=incident_data_pa_gov,
+           listw = lw_4,
+           zero.policy = TRUE,
+           weights = incident_data_pa_gov$population,
+           na.action = na.omit)
+
+summary(incident_social)
 
 
-
-
-
+###### spatial regression model ####
+naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
+data_naloxone <- naloxone
+df <-  data_naloxone %>% distinct(data_naloxone$County.Name,data_naloxone$County.Latitude.Point,data_naloxone$County.Longitude.Point)
+colnames(df)[1] <- "county"
+df <- df[order(df$county),]
+colnames(df)[2] <- "Latitude"
+colnames(df)[3] <- "Longitude"
+df <- df[,c(1,3,2)]
+df$Longitude <- as.numeric(df$Longitude)
+df$Latitude <-as.numeric(df$Latitude)
+distance_matrix <- geodist(df, measure = 'geodesic' )/1000 #converting it to km
+distance_matrix <- (1+distance_matrix)
+distance_matrix<- distance_matrix**(-1)
+diag(distance_matrix) <- 0
+colnames(distance_matrix) <- df$county
+rownames(distance_matrix) <- df$county
+d_i_j<- data.frame(distance_matrix)
+normalised_scale <- rowSums(d_i_j)
+normalised_scale
+distance_matrix_normalised_for_spatial_weights <- sweep(distance_matrix,1,normalised_scale, FUN = '/')
+distance_matrix_normalised_for_spatial_weights <- as.matrix(distance_matrix_normalised_for_spatial_weights)
+lw_5 <- mat2listw(distance_matrix_normalised_for_spatial_weights)
+incident_spatial <- errorsarlm(deaths_per_capita~log(deaths_social_proximity_county)+log(deaths_spatial_proximity_county)+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+CHR_HOMICIDES+AHRF_COMM_HLTH_CNTR+AHRF_MENTL_HLTH_CNT+AMFAR_HIVDIAGNOSED,data=incident_data_pa_gov,
+                              listw = lw_5,
+                              zero.policy = TRUE,
+                              weights = incident_data_pa_gov$population,
+                              na.action = na.omit)
+summary(incident_spatial)
 
 
 
