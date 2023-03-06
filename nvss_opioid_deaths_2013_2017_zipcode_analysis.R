@@ -250,7 +250,7 @@ write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_pad
 #### covariate selection using lasso####
 library(glmnet)
 library(caret)
-x <- df_ood_nvss_zipcode_level[,c(27,28,31,32,33,34,35,36,37)]
+x <- df_ood_nvss_zipcode_level[,c(28,29,32,33,34,35,36,37,38)]
 x <- as.matrix(x)
 y <- as.matrix(df_ood_nvss_zipcode_level$deaths_per_capita)
 set.seed(123)
@@ -262,8 +262,16 @@ y_test <- y[-index]
 cv.fit <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
 plot(cv.fit)
 lambda_best <- cv.fit$lambda.min
-fit <- glmnet(x, y, alpha = 1)
-coef(fit, s = lambda_best)
+lasso_model <- glmnet(x, y, alpha = 1, lambda = lambda_best)
+
+# Obtain coefficients and p-values
+coef_lasso <- coef(lasso_model)
+pvalues_lasso <- summary(lasso_model) # Remove the intercept term
+
+# Print the coefficients and p-values
+print(coef_lasso)
+print(pvalues_lasso)
+
 
 ### regressions###
 summary(m3<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=population,data=df_ood_nvss_zipcode_level))
@@ -282,6 +290,8 @@ summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_phy
 
 
 #### SPATIAL ERROR REGRESSION
+library(spatialreg)
+library(spdep)
 df_0<- read_tsv('C:/Users/kusha/Desktop/Data for Paper/SCI/zcta_zcta_shard1.tsv')
 df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000))
 nvss_zipcodes <- df_ood_nvss_zipcode_level$zipcode
@@ -295,16 +305,39 @@ df_for_matrix_probability
 nodes <- df_1 %>% distinct(user_loc)
 k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
 sci_matrix <- as_adjacency_matrix(k,attr="probabilites",sparse=F)
-sci_matrix<- 1+sci_matrix**(-1)
-sci_proximity_mat_zip <- as.matrix(sci_matrix)
+row_sums <- rowSums(sci_matrix)
+# Divide each row by its sum
+sci_matrix_norm <- sci_matrix / row_sums
+sci_proximity_mat_zip <- as.matrix(sci_matrix_norm)
+diag(sci_proximity_mat_zip) <- 0
 lw_3 <- mat2listw(sci_proximity_mat_zip)
-
-spaial_proximiy_mat_zip <- as.matrix(distance_matrix)
+################ spatial proximity #####
+library(geodist)
+df <-  df_ood_nvss_zipcode_level%>% dplyr::select(zipcode, lat, lng)
+df <- df[order(df$zipcode),]
+colnames(df)[2] <- "latitude"
+colnames(df)[3] <- "longitude"
+df <- df[,c(1,3,2)]
+distance_matrix <- geodist(df, measure = 'geodesic' )/1000 #converting it to km
+distance_matrix <- (1+distance_matrix)
+distance_matrix<- distance_matrix**(-1)
+colnames(distance_matrix) <- df$zipcode
+rownames(distance_matrix) <- df$zipcode
+d_i_j<- data.frame(distance_matrix)
+normalised_scale <- colSums(d_i_j)
+normalised_scale
+zip_distance_proximity<- d_i_j
+colnames(zip_distance_proximity) <- df$zipcode
+rownames(zip_distance_proximity) <- df$zipcode
+diag(zip_distance_proximity) <- 0
+zip_distance_proximity
+v <- df_ood_nvss_zipcode_level$deaths_per_capita
+zip_physical_proximity_dij <- sweep(zip_distance_proximity,2,v,FUN="*")
+zip_normalised_physical_porximity <- sweep(zip_physical_proximity_dij,2,normalised_scale,FUN="/")
+spaial_proximiy_mat_zip <- as.matrix(zip_normalised_physical_porximity)
 lw_4 <- mat2listw(spaial_proximiy_mat_zip)
 
-node_lat_lng <- df_ood_nvss_zipcode_level %>% dplyr::select(c(zipcode,lng,lat))
-write.csv(node_lat_lng,'node_attributes.csv')
-
+#### sem model###
 ZIPCODE_SPATIAL_1 <- errorsarlm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+ ACS_PCT_NO_VEH+ACS_PCT_UNEMPLOY+ACS_MEDIAN_HH_INCOME+ACS_PCT_SMARTPHONE+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_PERSON_INC99,data=df_ood_nvss_zipcode_level,
                               listw = lw_3,
                               zero.policy = TRUE,
@@ -319,7 +352,6 @@ ZIPCODE_SPATIAL_2 <- errorsarlm(deaths_per_capita~log(deaths_sci_proximity_zip)+
                                 na.action = na.omit)
 summary(ZIPCODE_SPATIAL_2)
 
-
-
-
-
+##### for netowrk graph ####
+node_lat_lng <- df_ood_nvss_zipcode_level %>% dplyr::select(c(zipcode,lng,lat))
+write.csv(node_lat_lng,'node_attributes.csv')
