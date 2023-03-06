@@ -81,7 +81,7 @@ census_data_frame <- merge(Soc.2020,pa_hh_income,by="NAME")
 
 ##### getting incidents per county ###
 ###https://data.pa.gov/Opioid-Related/Overdose-Information-Network-Data-CY-January-2018-/hbkk-dwy3####
-dat <- read.csv("data.csv")
+dat <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Incident Data/data.csv")
 n_ood <- count(dat,dat$Incident.County.Name)
 q_i <- cbind(n_ood,Soc.2020)
 q_i <- q_i[,-4]
@@ -93,32 +93,30 @@ q_i <- q_i %>% dplyr::select(GEOID,deaths_per_capita)
 q_i
 colnames(q_i)[1] <- "fr_loc"
 colnames(q_i)[2] <- "deaths_per_capita"
+
 ##sci proximity ##
-df_0 <- read_tsv ('county_county.tsv')
-df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000)) 
-df_1 <- df_0 %>% dplyr::filter(user_loc %in% 42001:42133 & fr_loc %in% 42001:42133)
-df_1 <- unique(df_1)
-df_1 <- df_1 %>% distinct(probabilites,.keep_all = TRUE) ##single repeated pairwise comparisons for sci
-user_loc <- df_1 %>% distinct(user_loc)
+df_0 <- read_tsv ('C:/Users/kusha/Desktop/Data for Paper/SCI/county_county.tsv')
+df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000)) 
+df_1 <- df_0 %>% dplyr::filter(user_loc %in% q_i$fr_loc & fr_loc %in% q_i$fr_loc)
+df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
+df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
+df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc)))) ##unique pairs + self loops
 df_s <- merge(df_1,q_i,by="fr_loc")
 df_s <- df_s %>% mutate(wt_sci=probabilites*deaths_per_capita)
 dataframe_for_matrix <- df_s %>% dplyr::select(c(user_loc,fr_loc,wt_sci))
-nodes <- df_1 %>% distinct(user_loc)
-
+nodes <- df_s %>% distinct(user_loc)
 g <- graph.data.frame(dataframe_for_matrix, directed=F, vertices=nodes)
 sci_proximity <- as_adjacency_matrix(g,attr = "wt_sci",sparse = F)
 diag(sci_proximity) <- 0
-
 df_for_matrix_probability <- df_s %>% dplyr::select(c(user_loc,fr_loc,probabilites))
 df_for_matrix_probability
 k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
 cumulative_sci <- as_adjacency_matrix(k,attr="probabilites",sparse=F)
 row_wise_sum_sci <- rowSums(cumulative_sci)
 row_wise_sum_sci
+sci_proximity_county <- sweep(sci_proximity,2,row_wise_sum_sci,FUN="/")
+deaths_social_proximity_county<- rowSums(sci_proximity_county)
 
-sci_proximity <- sweep(sci_proximity,2,row_wise_sum_sci,FUN="/")
-sci_proximity_county <- rowSums(sci_proximity)
-sci_proximity_county
 #### physical proximity county ###
 naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
 data_naloxone <- naloxone
@@ -146,8 +144,9 @@ county_distance_proximity
 v <- q_i$deaths_per_capita
 county_physical_proximity_dij <- sweep(county_distance_proximity,2,v,FUN="*")
 county_normalised_physical_porximity <- sweep(county_physical_proximity_dij,2,normalised_scale,FUN="/")
-deaths_physical_proximity=rowSums(county_normalised_physical_porximity)
-deaths_physical_proximity
+deaths_spatial_proximity_county=rowSums(county_normalised_physical_porximity)
+deaths_spatial_proximity_county
+
 #### nalaxone administered per county ###
 naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
 data_naloxone <- naloxone
@@ -156,7 +155,26 @@ data_naloxone <- data_naloxone[order(data_naloxone$County.Name),]
 colnames(data_naloxone)[1] <- "county"
 data_naloxone$Cumulative.Kits.Provided <- as.numeric(gsub(",","",data_naloxone$Cumulative.Kits.Provided))
 data_naloxone <- data_naloxone %>% mutate(county= gsub("(.*),.*", "\\1", data_naloxone$county))
-data_naloxone$naloxone_per_capita <- scale(data_naloxone$Cumulative.Kits.Provided/Soc.2020$population)
+data_naloxone$naloxone_per_capita <- scale(data_naloxone$Cumulative.Kits.Provided)
+
+###########SDOH##
+health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/county_2017.csv')
+health_determinant <- health_determinant %>% dplyr::filter(health_determinant$STATE== "Pennsylvania")
+health_determinant <- health_determinant %>% dplyr::select(c('COUNTY', 'FIPSCODE' , 'ACS_PCT_SMARTPHONE', 'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC99', 'ACS_MEDIAN_HH_INCOME', 'CCBP_RATE_BWLSTORES_PER_1000', 'CHR_HOMICIDES', 'ACS_PCT_NO_VEH', 'AHRF_COMM_HLTH_CNTR', 'AHRF_MENTL_HLTH_CNT', 'CHR_SMOKING', 'CHR_MENTAL_DISTRESS', 'AMFAR_HIVDIAGNOSED'))
+scaled_health_determinant <- data.frame(health_determinant[3:14])
+county_final_df <- scale(health_determinant[,c(3:14)])
+county_final_df$deaths_social_proximity_county <- deaths_social_proximity_county
+county_final_df$deaths_spatial_proximity_county <- deaths_physical_proximity
+county_final_df$naloxone_administered_per_county <- data_naloxone$naloxone_per_capita
+write.csv(county_final_df, 'county_final_df_pa_gov.csv')
+#########################################
+
+
+
+
+
+
+
 #### odr###
 url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 sites <- url %>% html_nodes('td') %>% html_text()
@@ -186,7 +204,6 @@ mdf <- data.frame(county,drug_quantity_kilogram)
 illicit_drug_busted_per_quantity <- rbind(illicit_data_2016_2017,mdf)
 illicit_drug_busted_per_quantity <- illicit_drug_busted_per_quantity[order(illicit_drug_busted_per_quantity$county),]
 county_final_df <- Soc.2020
-#county_final_df$deaths <- deaths_per_county_data$Total
 county_final_df$deaths_per_capita <- q_i$deaths_per_capita
 county_final_df$lat <- df$Latitude
 county_final_df$lng <- df$Longitude
@@ -196,9 +213,16 @@ county_final_df$illicit_drug_busted_per_quantity_kg  <- illicit_drug_busted_per_
 county_final_df$ODR <- ODR$`Opioid Dispensing Rate Per 100`
 county_final_df$ODR <- as.numeric(county_final_df$ODR)
 county_final_df$naloxone <- data_naloxone$naloxone_per_capita
+
+
+
+
+
+################ regression ####
+
 m1 <- lm(deaths_per_capita~ log(deaths_social_proximity_county)+log(deaths_physical_proximity_county)+ODR+naloxone+illicit_drug_busted_per_quantity_kg, weights = population, data=county_final_df)
 summary(m1)
-write.csv(county_final_df, 'county_final_df_pa_gov.csv')
+
 county_final_df_incident <- read.csv('county_final_df_pa_gov_correction_made.csv')
 county_final_df_incident <- county_final_df_incident %>% mutate(sp=log(deaths_social_proximity_county))
 county_final_df_incident <- county_final_df_incident %>% mutate(dp=log(deaths_physical_proximity_county))
