@@ -378,6 +378,4 @@ ZIPCODE_SPATIAL_2 <- errorsarlm(deaths_per_capita~log(deaths_sci_proximity_zip)+
                                 na.action = na.omit)
 summary(ZIPCODE_SPATIAL_2)
 
-##### for netowrk graph ####
-node_lat_lng <- df_ood_nvss_zipcode_level %>% dplyr::select(c(zipcode,lng,lat))
-write.csv(node_lat_lng,'node_attributes.csv')
+
