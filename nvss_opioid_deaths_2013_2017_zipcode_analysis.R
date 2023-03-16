@@ -301,7 +301,7 @@ x <- df_ood_nvss_zipcode_level[,c(27,28,29,30,31,32,33,34,35,36,37)]
 x <- as.matrix(x)
 y <- as.matrix(df_ood_nvss_zipcode_level$deaths_per_capita)
 set.seed(123)
-index <- createDataPartition(df_ood_nvss_zipcode_level$deaths_per_capita, p = 0.8, list = FALSE)
+index <- createDataPartition(df_ood_nvss_zipcode_level$deaths_per_capita, p = 0.7, list = FALSE)
 x_train <- x[index, ]
 y_train <- y[index]
 x_test <- x[-index, ]
@@ -342,32 +342,18 @@ plot(m4$residuals)
 stargazer(m4 title = "Zero Inflated Regression Results", align = TRUE, type = "latex")
 stargazer(m4,zero.component = FALSE, title = "Zero Inflated Regression Results", align = TRUE, type = "latex")
 
-### getting linear precitors
-linear_predictors <- predict(m4$count, type = "link")
-# calculate spatial error term
-e <- residuals(lm(m4$y ~ m4$linear.predictors))
-############ 
-
-
-# fit spatial lag model to spatial error term
-m2 <- spautolm(e ~ 1, listw = W)
-
-# add spatial error term to zero-inflated model
-m3 <- update(m, . ~ . + m2$u)
-
-# view model summary
-summary(m3)
 
 
 
 
 summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH+scale(population),data = df_ood_nvss_zipcode_level))
 
-linear_model <- lm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip + ACS_PCT_HH_SMARTPHONE_ZC + 
-                     ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + 
-                     ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + 
-                     ACS_PCT_OTHER_INS_ZC, data = df_ood_nvss_zipcode_level, weights = df_ood_nvss_zipcode_level$population)
-linear_model_1 <- lm(deaths_sci_proximity_zip ~ deaths_spatial_proximity_zip +
+linear_model <- lm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip+ 
+                     ACS_PCT_LT_HS_ZC + POS_DIST_ALC_ZP + 
+                     naloxone_administered_per_zip_code 
+                   ,data=df_ood_nvss_zipcode_level,weights = df_ood_nvss_zipcode_level$population)
+
+linear_model_1 <- lm(deaths_per_capita ~ deaths_sci_proximity_zip+ deaths_spatial_proximity_zip +
                        ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + 
                        ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + 
                        ACS_PCT_OTHER_INS_ZC, data = df_ood_nvss_zipcode_level, weights = df_ood_nvss_zipcode_level$population)
@@ -441,12 +427,31 @@ ZIPCODE_SPATIAL_1 <- errorsarlm(deaths_per_capita ~ deaths_sci_proximity_zip + d
                               na.action = na.omit)
 summary(ZIPCODE_SPATIAL_1)
 
+#### zipcode_spatial_1.1 for the new selected covariates
+
+ZIPCODE_SPATIAL_1.1 <- errorsarlm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip+ ACS_PCT_LT_HS_ZC + POS_DIST_ALC_ZP + naloxone_administered_per_zip_code ,data=df_ood_nvss_zipcode_level,
+                                listw = lw_3,
+                                zero.policy = TRUE,
+                                weights = df_ood_nvss_zipcode_level$population,
+                                na.action = na.omit)
+summary(ZIPCODE_SPATIAL_1.1)
+
+
+
 ZIPCODE_SPATIAL_2 <- errorsarlm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip+ ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC,data=df_ood_nvss_zipcode_level,
                                 listw = lw_4,
                                 zero.policy = TRUE,
                                 weights = df_ood_nvss_zipcode_level$population,
                                 na.action = na.omit)
 summary(ZIPCODE_SPATIAL_2)
+
+## zipcode_spatial 2.1 for the new selected covariates 
+ZIPCODE_SPATIAL_2.1 <- errorsarlm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip+ ACS_PCT_LT_HS_ZC + POS_DIST_ALC_ZP + naloxone_administered_per_zip_code ,data=df_ood_nvss_zipcode_level,
+                                  listw = lw_4,
+                                  zero.policy = TRUE,
+                                  weights = df_ood_nvss_zipcode_level$population,
+                                  na.action = na.omit)
+summary(ZIPCODE_SPATIAL_2.1)
 
 ####
 
