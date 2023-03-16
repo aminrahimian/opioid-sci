@@ -73,30 +73,34 @@ df_0<- read_tsv('C:/Users/kusha/Desktop/Data for Paper/SCI/zcta_zcta_shard1.tsv'
 ## us-zip-code-us-zip-code-fb-social-connectedness-index-october-2021.zip
 ## file and is downloaded from  
 ## https://data.humdata.org/dataset/social-connectedness-index
-df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000))
 nvss_zipcodes <- df_ood_nvss_zipcode_level$zipcode
 df_1 <- df_0 %>% dplyr::filter(user_loc %in% nvss_zipcodes & fr_loc %in% nvss_zipcodes)
-df_1 <- df_1 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000))
 left_over_zip_codes <- nvss_zipcodes[!(nvss_zipcodes %in% df_1$user_loc)]
 df_ood_nvss_zipcode_level<- df_ood_nvss_zipcode_level[ ! df_ood_nvss_zipcode_level$zipcode %in% left_over_zip_codes, ]
 df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc))))
 df_1$fr_loc <- as.numeric(df_1$fr_loc)
 nodes <- df_1 %>% distinct(fr_loc)
-df_for_matrix_probability <- df_1 %>% dplyr::select(c(user_loc,fr_loc,probabilites))
-df_for_matrix_probability
-k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
-cumulative_sci <- as_adjacency_matrix(k,attr="probabilites",sparse=T)
-cumulative_sci_deaths <- as.matrix(cumulative_sci)
-diag(cumulative_sci_deaths) <- 0
-v <- df_ood_nvss_zipcode_level$deaths_per_capita
-for(i in 1:ncol(cumulative_sci_deaths)){
-  cumulative_sci_deaths[,i] <- cumulative_sci_deaths[,i] * v[i]
+df_for_matrix_weights <- df_1 %>% dplyr::select(c(user_loc,fr_loc,scaled_sci))
+df_for_matrix_weights
+k <- graph.data.frame(df_for_matrix_weights, directed=F, vertices=nodes)
+cumulative_sci_weighted <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
+cumulative_sci_weighted <- as.matrix(cumulative_sci_weighted)
+diag(cumulative_sci_weighted) <- 0
+population <- df_ood_nvss_zipcode_level$population
+for(i in 1:ncol(cumulative_sci_weighted)){
+  cumulative_sci_weighted[,i] <- cumulative_sci_weighted[,i] * population[i]
 }
-row_sums_cumulative_sci_deaths_zipcodes <- rowSums(cumulative_sci_deaths)
-normalising_cumulative_matrix <- as.matrix(cumulative_sci)
-diag(normalising_cumulative_matrix) <- 0
-rowSums_normalising_cumulative_matrix <- rowSums(normalising_cumulative_matrix)
-sci_proximity_zip_nvss_2013_2017 <- row_sums_cumulative_sci_deaths_zipcodes/rowSums_normalising_cumulative_matrix 
+row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
+cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
+
+
+v <- df_ood_nvss_zipcode_level$deaths_per_capita
+for(i in 1:ncol(cumulative_sci_weighted_test)){
+  cumulative_sci_weighted_test[,i] <- cumulative_sci_weighted_test[,i] * v[i]
+}
+sci_proximity_zip_nvss_2013_2017 <- rowSums(cumulative_sci_weighted_test)
+
+
 
 
 #### q_i stores zipcode wise deathspercapita aggregated over temporal window from 2013-2017####
@@ -234,13 +238,36 @@ df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% mutate(ODR=scale(as.n
 
 ##### health determinant ####
 #############################
+#ACS_PCT_LT_HS= Percentage of population with less than high school education (ages 25 and over)
+#ACS_PCT_MEDICAID_ANY=Percentage of population with any Medicaid/means-tested public health insurance coverage
+#ERS_RUCA1_2010=Primary Rural-Urban Commuting Area Code 2010
+#ACS_PCT_UNINSURED	Percentage of population with no health insurance coverage
+#ACS_PCT_LT_HS Percentage of population with less than high school education (ages 25 and over, ZCTA level)
+#POS_DIST_ALC_ZP	Distance in miles to the nearest hospital with alcohol and drug abuse inpatient care, calculated using population weighted ZIP centroids
+#ACS_PCT_PERSON_INC_BELOW99_ZC	Percentage of population with an income to poverty ratio under 1.00 (ZCTA level)
+#ACS_PCT_LT_HS_ZC	Percentage of population with less than high school education (ages 25 and over, ZCTA level)
+#ACS_PCT_OTHER_INS_ZC	Percentage of population with other health insurance coverage combinations (ZCTA level)
+#CCBP_TOT_BWLSTORES_ZP	Total number of beer, wine and liquor stores (ZIP level)
+#ACS_PCT_HU_NO_VEH_ZC
+#CCBP_TOT_GAMBLING_ZP	Total number of gambling establishments (ZIP level)
+#POS_DIST_ALC_ZP	Distance in miles to the nearest hospital with alcohol and drug abuse inpatient care, calculated using population weighted ZIP centroids
+
 zip_codes_in_df_ood_nvss_for_sdoh <- df_ood_nvss_zipcode_level$zipcode
-health_determinant <- read.csv('zipcode_2017.csv')
+health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/SDOH_ZIPCODE.csv')
 health_determinant_zip <- health_determinant %>% dplyr::filter(health_determinant$STATE== "Pennsylvania")
-health_determinant_zip <- health_determinant_zip %>% dplyr::select(c('ZCTA', 'STATE' , 'ACS_PCT_SMARTPHONE', 'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC99', 'ACS_MEDIAN_HH_INCOME', 'CCBP_RATE_BWLSTORES_PER_1000', 'ACS_PCT_NO_VEH'))
+health_determinant_zip <- health_determinant_zip %>% dplyr::select(c('ZCTA', 'STATE' , 'ACS_PCT_HH_SMARTPHONE_ZC', 'ACS_PCT_UNEMPLOY_ZC', 'ACS_PCT_PERSON_INC_BELOW99_ZC', 'CCBP_TOT_BWLSTORES_ZP', 'ACS_PCT_HU_NO_VEH_ZC', 'ACS_PCT_LT_HS_ZC', 'POS_DIST_ALC_ZP','ACS_PCT_OTHER_INS_ZC','CCBP_TOT_GAMBLING_ZP'))
 health_determinant_zip <- health_determinant_zip %>% dplyr::filter(ZCTA %in% zip_codes_in_df_ood_nvss_for_sdoh)
-health_determinant_zip <- health_determinant_zip %>% replace(is.na(.), 0)
-health_determinant_zip_covariates <- health_determinant_zip[,c(3:8)]
+health_determinant_zip_unique <- health_determinant_zip[!duplicated(health_determinant_zip$ZCTA),]
+zctas <- c("17016", "17945", "18221", "18223", "18335", "19316")
+for (zcta in zctas) {
+  row <- c(zcta, rep("0", 11))
+  health_determinant_zip_unique <- rbind(health_determinant_zip_unique, row)
+}
+health_determinant_zip_unique <- health_determinant_zip_unique %>% replace(is.na(.), 0)
+health_determinant_zip_unique[, 2] <- "Pennsylvania"
+health_determinant_zip_unique <- health_determinant_zip_unique %>% arrange(ZCTA)
+health_determinant_zip_covariates <- health_determinant_zip_unique[,c(3:11)]
+health_determinant_zip_covariates[1:9] <- lapply(health_determinant_zip_covariates[1:9], as.numeric)
 health_determinant_zip_covariates <- scale(health_determinant_zip_covariates)
 df_ood_nvss_zipcode_level <- cbind(df_ood_nvss_zipcode_level,health_determinant_zip_covariates)
 #######################################################################################
@@ -262,7 +289,7 @@ df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,naloxone_administer
 df_ood_nvss_zipcode_level$naloxone_administered_per_zip_code <- scale(df_ood_nvss_zipcode_level$naloxone_administered_per_zip_code/df_ood_nvss_zipcode_level$population)
 colnames(df_ood_nvss_zipcode_level)[27] <- "deaths_sci_proximity_zip"
 colnames(df_ood_nvss_zipcode_level)[28] <- "deaths_spatial_proximity_zip"
-
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level[,-37]
 
 write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
 
@@ -270,7 +297,7 @@ write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_pad
 #### covariate selection using lasso####
 library(glmnet)
 library(caret)
-x <- df_ood_nvss_zipcode_level[,c(28,29,32,33,34,35,36,37,38)]
+x <- df_ood_nvss_zipcode_level[,c(27,28,29,30,31,32,33,34,35,36,37)]
 x <- as.matrix(x)
 y <- as.matrix(df_ood_nvss_zipcode_level$deaths_per_capita)
 set.seed(123)
@@ -280,7 +307,7 @@ y_train <- y[index]
 x_test <- x[-index, ]
 y_test <- y[-index]
 cv.fit <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 5)
-plot(cv.fit)
+#plot(cv.fit)
 lambda_best <- cv.fit$lambda.min
 lasso_model <- glmnet(x, y, alpha = 1, lambda = lambda_best)
 
@@ -296,7 +323,7 @@ print(pvalues_lasso)
 ### regressions###
 summary(m3<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH, weights=population,data=df_ood_nvss_zipcode_level))
 
-summary(m3.1<-lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_physical_proximity)+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data=df_ood_nvss_zipcode_level))
+summary(m3.1<-lm(deaths_per_capita~deaths_sci_proximity_zip+deaths__proximity+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH,data=df_ood_nvss_zipcode_level))
 summary(m3)
 
 
@@ -304,9 +331,47 @@ hist(nvss_ood_county_wise_2013_2017$n, bins)
 
 ### library(pscl)for zero inflated regression
 df_ood_nvss_zipcode_level <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% mutate(deaths=deaths_per_capita*population)
 library(pscl)
-summary(m4 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH+scale(population),data = df_ood_nvss_zipcode_level, dist="negbin"))
+summary(m4 <- zeroinfl(deaths ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip + ACS_PCT_HH_SMARTPHONE_ZC 
+                       + ACS_PCT_UNEMPLOY_ZC 
+                       + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC 
+                       + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC + scale(population), data = df_ood_nvss_zipcode_level, dist = 'poisson'))
+plot(m4$residuals)
+
+stargazer(m4 title = "Zero Inflated Regression Results", align = TRUE, type = "latex")
+stargazer(m4,zero.component = FALSE, title = "Zero Inflated Regression Results", align = TRUE, type = "latex")
+
+### getting linear precitors
+linear_predictors <- predict(m4$count, type = "link")
+# calculate spatial error term
+e <- residuals(lm(m4$y ~ m4$linear.predictors))
+############ 
+
+
+# fit spatial lag model to spatial error term
+m2 <- spautolm(e ~ 1, listw = W)
+
+# add spatial error term to zero-inflated model
+m3 <- update(m, . ~ . + m2$u)
+
+# view model summary
+summary(m3)
+
+
+
+
 summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH+scale(population),data = df_ood_nvss_zipcode_level))
+
+linear_model <- lm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip + ACS_PCT_HH_SMARTPHONE_ZC + 
+                     ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + 
+                     ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + 
+                     ACS_PCT_OTHER_INS_ZC, data = df_ood_nvss_zipcode_level, weights = df_ood_nvss_zipcode_level$population)
+linear_model_1 <- lm(deaths_sci_proximity_zip ~ deaths_spatial_proximity_zip +
+                       ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + 
+                       ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + 
+                       ACS_PCT_OTHER_INS_ZC, data = df_ood_nvss_zipcode_level, weights = df_ood_nvss_zipcode_level$population)
+linear_model_2  <- 
 
 
 #### SPATIAL ERROR REGRESSION
@@ -320,11 +385,11 @@ df_1 <- df_1 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000))
 left_over_zip_codes <- nvss_zipcodes[!(nvss_zipcodes %in% df_1$user_loc)]
 df_ood_nvss_zipcode_level<- df_ood_nvss_zipcode_level[ ! df_ood_nvss_zipcode_level$zipcode %in% left_over_zip_codes, ]
 df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc))))
-df_for_matrix_probability <- df_1 %>% dplyr::select(c(user_loc,fr_loc,probabilites))
+df_for_matrix_probability <- df_1 %>% dplyr::select(c(user_loc,fr_loc,scaled_sci))
 df_for_matrix_probability
 nodes <- df_1 %>% distinct(user_loc)
 k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
-sci_matrix <- as_adjacency_matrix(k,attr="probabilites",sparse=T)
+sci_matrix <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
 sci_matrix <- as.matrix(sci_matrix)
 diag(sci_matrix) <- 0 
 row_sums <- rowSums(sci_matrix)
@@ -363,19 +428,26 @@ diag(spatial_proximity_mat_zip) <- 0
 spaial_proximiy_mat_zip <- as.matrix(spatial_proximity_mat_zip)
 lw_4 <- mat2listw(spaial_proximiy_mat_zip)
 
-#### sem model###
-ZIPCODE_SPATIAL_1 <- errorsarlm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+ ACS_PCT_NO_VEH+ ACS_PCT_UNEMPLOY+ACS_MEDIAN_HH_INCOME+ACS_PCT_SMARTPHONE+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_PERSON_INC99,data=df_ood_nvss_zipcode_level,
+#### sem model##
+linear_model <- lm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip + ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC, data = df_ood_nvss_zipcode_level, weights = df_ood_nvss_zipcode_level$population)
+summary(linear_model)
+stargazer::stargazer(linear_model,out='zipcode_linear_model.html', type='html')
+moran.test(linear_model$residuals, listw = lw_4)
+
+ZIPCODE_SPATIAL_1 <- errorsarlm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip  + ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC,data=df_ood_nvss_zipcode_level,
                               listw = lw_3,
                               zero.policy = TRUE,
                               weights = df_ood_nvss_zipcode_level$population,
                               na.action = na.omit)
 summary(ZIPCODE_SPATIAL_1)
 
-ZIPCODE_SPATIAL_2 <- errorsarlm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+ ACS_PCT_UNEMPLOY+ ACS_PCT_NO_VEH+ACS_MEDIAN_HH_INCOME+ACS_PCT_SMARTPHONE+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_PERSON_INC99,data=df_ood_nvss_zipcode_level,
+ZIPCODE_SPATIAL_2 <- errorsarlm(deaths_per_capita ~ deaths_sci_proximity_zip + deaths_spatial_proximity_zip+ ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC,data=df_ood_nvss_zipcode_level,
                                 listw = lw_4,
                                 zero.policy = TRUE,
                                 weights = df_ood_nvss_zipcode_level$population,
                                 na.action = na.omit)
 summary(ZIPCODE_SPATIAL_2)
 
+####
 
+lm(deaths_per_capita~log(deaths_sci_proximity_zip)+log(deaths_spatial_proximity_zip)+naloxone_administered_per_zip_code+ ACS_PCT_NO_VEH+ ACS_PCT_UNEMPLOY+ACS_MEDIAN_HH_INCOME+ACS_PCT_SMARTPHONE+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_PERSON_INC99,data=df_ood_nvss_zipcode_level)
