@@ -316,3 +316,49 @@ ood_data_2016 <- d_values_test_2016$ood_data
 ####### spatial proximity 2017 #####
 d_values_test_2017 <- calculate_d_minus_i(ood_data_2017, zip_code_demographics)
 ood_data_2017 <- d_values_test_2017$ood_data
+####################### sdoh#########
+## no smart phone data available till 2016 ###
+####ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP
+
+sdoh_2013 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2013.csv")
+sdoh_2013 <- sdoh_2013 %>% filter(ZIPCODE %in% ood_data_2013$zip_new)
+sdoh_2013 <- sdoh_2013 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP"))
+
+colnames(sdoh_2013)[1] <- "zip_new"
+
+ood_data_2013 <- merge(ood_data_2013, sdoh_2013, by="zip_new")
+sdoh_2014 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2014.csv")
+sdoh_2014 <- sdoh_2014 %>% filter(ZIPCODE %in% ood_data_2014$zip_new)
+sdoh_2014 <- sdoh_2014 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP"))
+
+colnames(sdoh_2014)[1] <- "zip_new"
+
+ood_data_2014 <- merge(ood_data_2014, sdoh_2014, by="zip_new")
+
+sdoh_2015 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2015.csv")
+sdoh_2015 <- sdoh_2015 %>% filter(ZIPCODE %in% ood_data_2015$zip_new)
+sdoh_2015 <- sdoh_2015 %>% select(c("ZIPCODE",  "ACS_PCT_UNEMPLOY_ZC"
+                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP"))
+colnames(sdoh_2015)[1] <- "zip_new"
+
+ood_data_2015 <- merge(ood_data_2015, sdoh_2015, by="zip_new")
+
+sdoh_2016 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2016.csv")
+sdoh_2016 <- sdoh_2016 %>% filter(ZIPCODE %in% ood_data_2016$zip_new)
+sdoh_2016 <- sdoh_2016 %>% select(c("ZIPCODE", , "ACS_PCT_UNEMPLOY_ZC"
+                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP"))
+
+colnames(sdoh_2016)[1] <- "zip_new"
+ood_data_2016 <- merge(ood_data_2016, sdoh_2016, by="zip_new")
+
+sdoh_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2017.csv")
+sdoh_2017 <- sdoh_2017 %>% filter(ZIPCODE %in% ood_data_2017$zip_new)
+sdoh_2017 <- sdoh_2017 %>% select(c("ZIPCODE", , "ACS_PCT_UNEMPLOY_ZC"
+                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP"))
+
+colnames(sdoh_2017)[1] <- "zip_new"
+ood_data_2017 <- merge(ood_data_2017, sdoh_2017, by="zip_new")
+########## naloxone administered ###
+
