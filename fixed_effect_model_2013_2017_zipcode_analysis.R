@@ -191,10 +191,10 @@ ood_data_2016$deaths_per_capta <- ood_data_2016$deaths/ood_data_2016$population
 ood_data_2017$deaths_per_capta <- ood_data_2017$deaths/ood_data_2017$population
 
 ############# social proximity 2013#################
-ood_data_2013$deaths_per_capta[is.nan(ood_data_2013$deaths_per_capta)] <- 0
 library(readr)
 library(igraph)
 library(tidyverse)
+df_0<- read_tsv('C:/Users/kusha/Desktop/Data for Paper/SCI/zcta_zcta_shard1.tsv')
 calculate_s_values <- function(ood_data) {
   zipcodes <- ood_data$zip_new
   df_1 <- df_0 %>% dplyr::filter(user_loc %in% zipcodes & fr_loc %in% zipcodes)
@@ -223,22 +223,84 @@ calculate_s_values <- function(ood_data) {
   }
 
   s_values <- rowSums(cumulative_sci_weighted_test)
-  return(s_values)
+  
+  # Add s_values as a new column in ood_data
+  ood_data$s_values <- s_values
+  
+  # Return both the updated ood_data and the s_values
+  return(list("ood_data" = ood_data, "s_values" = s_values))
+  
 }
-s_2013 <- calculate_s_values(ood_data_2013)
-zip_codes_2013 <- row.names(cumulative_sci_weighted_test)
-s_2013_df <- data.frame(zip_codes_2013,s_2013)
-colnames(s_2013_df)[1] <- "Zip_new"
+
+
+### social proximiity for 2013 ###########
+ood_data_2013$deaths_per_capta[is.nan(ood_data_2013$deaths_per_capta)] <- 0
+result_2013 <- calculate_s_values(ood_data_2013)
+ood_data_2013 <- result_2013$ood_data
+
+
 
 ### social proximiity for 2014 ###########
 ood_data_2014$deaths_per_capta[is.nan(ood_data_2014$deaths_per_capta)] <- 0
-s_2014 <- calculate_s_values(ood_data_2014)
+result_2014 <- calculate_s_values(ood_data_2014)
+ood_data_2014 <- result_2014$ood_data
+
+
 ### social proximiity for 2015 ###########
 ood_data_2015$deaths_per_capta[is.nan(ood_data_2015$deaths_per_capta)] <- 0
-s_2015 <- calculate_s_values(ood_data_2015)
+result_2015 <- calculate_s_values(ood_data_2015)
+ood_data_2015 <- result_2015$ood_data
 ### social proximiity for 2016 ###########
 ood_data_2016$deaths_per_capta[is.nan(ood_data_2016$deaths_per_capta)] <- 0
-s_2016 <- calculate_s_values(ood_data_2016)
+result_2016 <- calculate_s_values(ood_data_2016)
+ood_data_2016 <- result_2016$ood_data
+
 ### social proximiity for 2017 ###########
 ood_data_2017$deaths_per_capta[is.nan(ood_data_2017$deaths_per_capta)] <- 0
-s_2017 <- calculate_s_values(ood_data_2017)
+result_2017 <- calculate_s_values(ood_data_2017)
+ood_data_2017 <- result_2017$ood_data
+##### spatial proximity ####
+######################## ##### deaths spatial proximity############
+######## function ######
+calculate_d_minus_i <- function(ood_data, zip_code_demographics) {
+  zip_codes_coordinates <- zip_code_demographics %>% dplyr::select(zipcode, lat, lng)
+  colnames(zip_codes_coordinates)[1] <- "zip_new"
+  ood_data <- merge(ood_data, zip_codes_coordinates, by = "zip_new")
+  
+  df <- ood_data %>% dplyr::select(zip_new, lat, lng)
+  df <- df[order(df$zip_new), ]
+  colnames(df)[2] <- "latitude"
+  colnames(df)[3] <- "longitude"
+  df <- df[, c(1, 3, 2)]
+  
+  distance_matrix <- geodist(df, measure = 'geodesic') / 1000 # converting it to km
+  distance_matrix <- 1 + distance_matrix
+  distance_matrix <- distance_matrix ** (-1)
+  diag(distance_matrix) <- 0
+  colnames(distance_matrix) <- df$zip_new
+  rownames(distance_matrix) <- df$zip_new
+  
+  v <- ood_data$deaths_per_capta
+  a_i_j <- data.frame(distance_matrix)
+  diag(a_i_j) <- 0
+  a_i_j <- as.matrix(a_i_j)
+  
+  # Normalize a_i_j
+  normalised_scale <- rowSums(a_i_j)
+  a_i_j <- a_i_j / normalised_scale
+  
+  # Ensure y is a numeric vector
+  y <- as.numeric(ood_data$deaths_per_capta)
+  
+  # Perform matrix multiplication
+  d_minus_i_values <- a_i_j %*% y
+
+  
+  ood_data$d_values <-   d_minus_i_values
+  
+  # Return both the updated ood_data and the s_values
+  return(list("ood_data" = ood_data, "d_values" =   d_minus_i_values))
+}
+
+d_values_test_2013 <- calculate_d_minus_i(ood_data_2013, zip_code_demographics)
+ood_data_2013 <- d_values_test_2013$ood_data
