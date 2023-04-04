@@ -301,6 +301,18 @@ calculate_d_minus_i <- function(ood_data, zip_code_demographics) {
   # Return both the updated ood_data and the s_values
   return(list("ood_data" = ood_data, "d_values" =   d_minus_i_values))
 }
-
+#### spatial proximity 2013######
 d_values_test_2013 <- calculate_d_minus_i(ood_data_2013, zip_code_demographics)
 ood_data_2013 <- d_values_test_2013$ood_data
+####### spatial proximity 2014 #####
+d_values_test_2014 <- calculate_d_minus_i(ood_data_2014, zip_code_demographics)
+ood_data_2014 <- d_values_test_2014$ood_data
+####### spatial proximity 2015 #####
+d_values_test_2015 <- calculate_d_minus_i(ood_data_2015, zip_code_demographics)
+ood_data_2015 <- d_values_test_2015$ood_data
+####### spatial proximity 2016 #####
+d_values_test_2016 <- calculate_d_minus_i(ood_data_2016, zip_code_demographics)
+ood_data_2016 <- d_values_test_2016$ood_data
+####### spatial proximity 2017 #####
+d_values_test_2017 <- calculate_d_minus_i(ood_data_2017, zip_code_demographics)
+ood_data_2017 <- d_values_test_2017$ood_data
