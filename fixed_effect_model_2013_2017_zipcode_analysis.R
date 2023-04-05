@@ -333,6 +333,7 @@ sdoh_2014 <- sdoh_2014 %>% filter(ZIPCODE %in% ood_data_2014$zip_new)
 sdoh_2014 <- sdoh_2014 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
                                     , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP"))
 
+
 colnames(sdoh_2014)[1] <- "zip_new"
 
 ood_data_2014 <- merge(ood_data_2014, sdoh_2014, by="zip_new")
@@ -360,5 +361,61 @@ sdoh_2017 <- sdoh_2017 %>% select(c("ZIPCODE", , "ACS_PCT_UNEMPLOY_ZC"
 
 colnames(sdoh_2017)[1] <- "zip_new"
 ood_data_2017 <- merge(ood_data_2017, sdoh_2017, by="zip_new")
-########## naloxone administered ###
+
+
+#### opioid prescription rate ####
+# https://data.cms.gov/summary-statistics-on-use-and-payments/medicare-medicaid-opioid-prescribing-rates/medicare-part-d-opioid-prescribing-rates-by-geography
+### for year 2013 ####
+opr <- read.csv('C:/Users/kusha/Desktop/Data for Paper/OPR/OPR.csv')
+opr_2013 <- opr %>% filter(Year==2013) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2013$zip_new)
+opr_2013 <- opr_2013 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+colnames(opr_2013)[1] <- "zip_new"
+opr_2013 <- opr_2013 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+ood_data_2013 <- merge(ood_data_2013, opr_2013, by="zip_new", all.x = TRUE)
+
+###### for year 2014 ####
+opr_2014 <- opr %>% filter(Year==2014) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2014$zip_new)
+opr_2014 <- opr_2014 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+colnames(opr_2014)[1] <- "zip_new"
+opr_2014 <- opr_2014 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+ood_data_2014 <- merge(ood_data_2014, opr_2014, by="zip_new", all.x = TRUE)
+#### for year 2015 ####
+opr_2015 <- opr %>% filter(Year==2015) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2015$zip_new)
+opr_2015 <- opr_2015 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+colnames(opr_2015)[1] <- "zip_new"
+opr_2015 <- opr_2015 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+ood_data_2015 <- merge(ood_data_2015, opr_2015, by="zip_new", all.x = TRUE)
+
+
+#### for year 2016 ####
+opr_2016 <- opr %>% filter(Year==2016) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2016$zip_new)
+opr_2016 <- opr_2016 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+colnames(opr_2016)[1] <- "zip_new"
+opr_2016 <- opr_2016 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+ood_data_2016 <- merge(ood_data_2016, opr_2016, by="zip_new", all.x = TRUE)
+
+
+#### for year 2017 ####
+opr_2017 <- opr %>% filter(Year==2017) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2017$zip_new)
+opr_2017 <- opr_2017 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+colnames(opr_2017)[1] <- "zip_new"
+opr_2017 <- opr_2017 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+ood_data_2017 <- merge(ood_data_2017, opr_2017, by="zip_new", all.x = TRUE)
+
+
+########## fixed effect data ###
+fixed_effect_data <- rbind(ood_data_2013,ood_data_2014,ood_data_2015,ood_data_2016,ood_data_2017)
+fixed_effect_data_1 <- rbind(ood_data_2013,ood_data_2014,ood_data_2015,ood_data_2016,ood_data_2017)
+
+fixed_effect_data_1 <- replace(fixed_effect_data_1, is.na(fixed_effect_data_1), 0)
+
+
+library(lfe)
+# Assuming your data is in a dataframe called 'data'
+model_felm <- felm(deaths_per_capta ~ s_values +  ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP +mean_OPR | zip_new + year, data = fixed_effect_data_1)
+summary(model_felm)
+library(fixest)
+MODEL <- feols(deaths_per_capta ~ s_values + d_values + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP +mean_OPR | zip_new + year, data = fixed_effect_data_1)
+summary(MODEL)
+fixef(MODEL)
 
