@@ -575,64 +575,6 @@ write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_pad
 df_ood_nvss_zipcode_level <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
 df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level[,-1]
 
-####################### negative binomial social proximity count data#########
-nvss_zipcodes <- df_ood_nvss_zipcode_level$ZCTA5CE10
-
-
-library(readr)
-library(igraph)
-library(tidyverse)
-#df_0 <- read_tsv ('./GitHub/opioid-sci/zcta_zcta_shard1.tsv') 
-df_0<- read_tsv('C:/Users/kusha/Desktop/Data for Paper/SCI/zcta_zcta_shard1.tsv')
-## The zcta_zcta_shard1.tsv file contains ZIP-level SCIs 
-## for ZIP=10001 to 19979, it is contained in 
-## us-zip-code-us-zip-code-fb-social-connectedness-index-october-2021.zip
-## file and is downloaded from  
-## https://data.humdata.org/dataset/social-connectedness-index
-nvss_zipcodes <- df_ood_nvss_zipcode_level$zipcode
-df_1 <- df_0 %>% dplyr::filter(user_loc %in% nvss_zipcodes & fr_loc %in% nvss_zipcodes)
-left_over_zip_codes <- nvss_zipcodes[!(nvss_zipcodes %in% df_1$user_loc)]
-df_ood_nvss_zipcode_level<- df_ood_nvss_zipcode_level[ ! df_ood_nvss_zipcode_level$zipcode %in% left_over_zip_codes, ]
-df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc))))
-df_1$fr_loc <- as.numeric(df_1$fr_loc)
-nodes <- df_1 %>% distinct(fr_loc)
-df_for_matrix_weights <- df_1 %>% dplyr::select(c(user_loc,fr_loc,scaled_sci))
-df_for_matrix_weights
-k <- graph.data.frame(df_for_matrix_weights, directed=F, vertices=nodes)
-cumulative_sci_weighted <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
-cumulative_sci_weighted <- as.matrix(cumulative_sci_weighted)
-diag(cumulative_sci_weighted) <- 0
-population <- df_ood_nvss_zipcode_level$population
-for(i in 1:ncol(cumulative_sci_weighted)){
-  cumulative_sci_weighted[,i] <- cumulative_sci_weighted[,i] * population[i]
-}
-row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
-cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
-
-v <- df_ood_nvss_zipcode_level$deaths_per_capita
-for(i in 1:ncol(cumulative_sci_weighted_test)){
-  cumulative_sci_weighted_test[,i] <- cumulative_sci_weighted_test[,i] * v[i]
-}
-
-sci_proximity_zip_nvss_2013_2017 <- rowSums(cumulative_sci_weighted_test)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #### covariate selection using lasso####
 library(glmnet)
@@ -661,38 +603,17 @@ print(pvalues_lasso)
 
 ########## NEGATIVE BINOMIAL #######3
 library(MASS)
-summary(nb1 <- glm.nb(deaths ~ sci_proximity_zip_nvss_2013_2017_deaths + df_physical_proximity_death_counts_nvss_2013_2017
+summary(nb1 <- glm.nb(deaths/population ~ `social proximity` + `spatial proximity`
                      + ACS_PCT_UNEMPLOY_ZC  + ACS_PCT_LT_HS_ZC +
                        + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC 
                      + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC 
-                     + OPR + population , data = df_ood_nvss_zipcode_level, weights=population))
+                     + OPR, data = df_ood_nvss_zipcode_level, weights=population))
 
 
 library(stargazer)
 stargazer::stargazer(nb1)
 install.packages("webshot")
-library(webshot)
-webshot::install_phantomjs()
-
-table_html <- stargazer(nb1, type = "html", digits = 3,
-                        out = "table.html",
-                        title = "Negative Binomial Regression",
-                        notes = c("* p < 0.1", "** p < 0.05", "*** p < 0.01"))
-
-# Convert the HTML table to a PNG
-webshot("table.html", "table.png", delay = 0.5, vwidth = 800, vheight = 600)
-stargazer(nb1, type = "latex")
-library(MASS)
-nb2 <- glm(deaths ~  sci_proximity_zip_nvss_2013_2017_deaths + df_physical_proximity_death_counts_nvss_2013_2017
-           + ACS_PCT_UNEMPLOY_ZC  + ACS_PCT_LT_HS_ZC +
-             + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC 
-           + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC 
-           + OPR + population, family = "poisson", data = df_ood_nvss_zipcode_level, weights = df_ood_nvss_zipcode_level$population)
-
-
-p_value <- pchisq(2 * (logLik(nb1) - logLik(nb2)), df = 1, lower.tail = FALSE)
-print(p_value)
-
+#####################
 
 ### library(pscl)for zero inflated regression
 df_ood_nvss_zipcode_level <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
@@ -709,9 +630,6 @@ stargazer(m4,zero.component = TRUE, title = "Zero Inflated Regression Results", 
 
 summary(m4.1 <- zeroinfl(deaths ~  log(deaths_sci_proximity_zip) +log(deaths_physical_proximity)+naloxone_administered_per_zip_code+naloxone_administered_per_zip_code+ACS_PCT_SMARTPHONE+ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC99+ACS_MEDIAN_HH_INCOME+CCBP_RATE_BWLSTORES_PER_1000+ACS_PCT_NO_VEH+scale(population),data = df_ood_nvss_zipcode_level))
 
-library(PerformanceAnalytics)
-return_data <- df_ood_nvss_zipcode_level[,c(26,27,28)]
-chart.Correlation( return_data )
 #### Social ERROR REGRESSION
 library(spatialreg)
 library(spdep)
