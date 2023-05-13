@@ -574,6 +574,28 @@ write.csv(df_ood_nvss_zipcode_level,'aggregated_zip_data_2013_2107_nvss_zero_pad
 
 df_ood_nvss_zipcode_level <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
 df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level[,-1]
+############### Naloxone Available ##########
+#### opioids for total_rx and total_naloxone 2013###
+library(haven)
+opioids_2013<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2013.sas7bdat")
+opioids_2013_PA <- opioids_2013 %>% filter(st_code=="PA")
+county_wise_total_rx <- opioids_2013_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
+setdiff(nvss_ood_county_wise_2013_2017$GEOID,county_wise_total_rx$state_fip_county_fip)
+missing_county_data <- new_row <- data.frame(county_nm = "FULTON", state_fip_county_fip = 42057, total_rx = 0, total_dose = 0)
+county_wise_total_rx <- rbind(county_wise_total_rx,missing_county_data)
+county_wise_total_rx_2013 <- county_wise_total_rx %>%  arrange(county_wise_total_rx$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx <- cbind(county_wise_total_rx,county_Wise_zip_codes)
+county_wise_total_rx <- county_wise_total_rx[,-1]
+county_wise_total_rx <- county_wise_total_rx %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx)[6] <- "total_rx_per_zip_codes"
+
+
+#### opioids for total_rx and total_naloxone 2014###
+
+
 
 
 #### covariate selection using lasso####
@@ -609,10 +631,23 @@ summary(nb1 <- glm.nb(deaths/population ~ `social proximity` + `spatial proximit
                      + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC 
                      + OPR, data = df_ood_nvss_zipcode_level, weights=population))
 
-
+### latex code ####
 library(stargazer)
 stargazer::stargazer(nb1)
 install.packages("webshot")
+library(AER)
+# Fit a Poisson model
+pois_model <- glm(deaths/population ~ `social proximity` + `spatial proximity`
+                  + ACS_PCT_UNEMPLOY_ZC  + ACS_PCT_LT_HS_ZC +
+                    + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC 
+                  + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC 
+                  + OPR, data = df_ood_nvss_zipcode_level, weights=population, family=poisson)
+summary(pois_model)
+# Test for overdispersion
+dispersiontest(pois_model, trafo=1)
+
+
+
 #####################
 
 ### library(pscl)for zero inflated regression
