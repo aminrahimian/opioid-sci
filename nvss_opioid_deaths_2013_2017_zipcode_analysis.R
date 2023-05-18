@@ -583,7 +583,7 @@ county_wise_total_rx_2013 <- opioids_2013_PA %>% group_by(county_nm, state_fip_c
 nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
 county_wise_total_rx_2013$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
 setdiff(nvss_ood_county_wise_2013_2017$GEOID,county_wise_total_rx_2013$state_fip_county_fip)
-missing_county_data <- new_row <- data.frame(county_nm = "FULTON", state_fip_county_fip = 42057, total_rx = 0, total_dose = 0)
+missing_county_data <- data.frame(county_nm = "FULTON", state_fip_county_fip = 42057, total_rx = 0, total_dose = 0)
 county_wise_total_rx_2013 <- rbind(county_wise_total_rx_2013,missing_county_data)
 county_wise_total_rx_2013 <- county_wise_total_rx_2013 %>%  arrange(county_wise_total_rx_2013$state_fip_county_fip)
 county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
@@ -645,7 +645,27 @@ df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,county_total_rx, by
 df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level[,-2]
 df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% group_by(county) %>% mutate(population_proprtion = population/sum(population))
 df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% mutate(cumulative_total_dose_population_proprtion= cumulative_total_dose*population_proprtion)
-
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% ungroup(county) %>%  mutate(cumulative_total_dose_population_proprtion_per_capita=cumulative_total_dose_population_proprtion/population)
+##### total naloxone available 2013 ##########
+naloxone_2013 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2013.sas7bdat")
+naloxone_2014 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2014.sas7bdat")
+naloxone_2015 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2015.sas7bdat")
+naloxone_2016 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2016.sas7bdat")
+naloxone_2017 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2017.sas7bdat")
+total_naloxone <- rbind(naloxone_2013, naloxone_2014, naloxone_2015, naloxone_2016, naloxone_2017)
+total_naloxone <- total_naloxone %>% filter(st_code=="PA") %>%  group_by(county_nm,state_and_county_fip) %>% 
+  summarise(avg_total_rx = mean(total_rx, na.rm = TRUE))
+total_naloxone$state_and_county_fip <- as.numeric(total_naloxone$state_and_county_fip)
+county <- unique(df_ood_nvss_zipcode_level$county)
+new_row <- data.frame(county_nm = "Cameron"  , state_and_county_fip = 42023, avg_total_rx = 0)
+total_naloxone <- rbind(total_naloxone,new_row)
+total_naloxone <- total_naloxone %>% arrange(state_and_county_fip)
+total_naloxone <- cbind(total_naloxone,county_Wise_zip_codes)
+total_naloxone <- total_naloxone[,-1]
+df_ood_nvss_zipcode_level <- merge(df_ood_nvss_zipcode_level,total_naloxone, by="county")
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level[,-c(45,47)]
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% mutate(average_naloxone_population_proprtion= avg_total_rx*population_proprtion)
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level %>% mutate(average_naloxone_population_proprtion_per_capita=average_naloxone_population_proprtion/population)
 
 
 #### covariate selection using lasso####
