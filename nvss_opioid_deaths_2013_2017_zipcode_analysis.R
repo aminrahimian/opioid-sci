@@ -373,10 +373,10 @@ print(pvalues_lasso)
 
 ########## NEGATIVE BINOMIAL #######3
 library(MASS)
-summary(nb1 <- glm.nb(deaths/population ~ deaths_sci_proximity_zip  + deaths_spatial_proximity_zip
+summary(nb1 <- glm.nb(deaths ~ deaths_sci_proximity_zip  + deaths_spatial_proximity_zip
                      + ACS_PCT_UNEMPLOY_ZC  + ACS_PCT_LT_HS_ZC +
                        + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC 
-                     + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC 
+                     + POS_DIST_ALC_ZP + ACS_PCT_OTHER_INS_ZC + offset(log(population))
                      +cumulative_total_dose_population_proprtion_per_capita+ average_naloxone_population_proprtion_per_capita, 
                      data = df_ood_nvss_zipcode_level, weights=population))
 
