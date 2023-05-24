@@ -319,19 +319,31 @@ ood_data_2017 <- d_values_test_2017$ood_data
 ####################### sdoh#########
 ## no smart phone data available till 2016 ###
 ####ACS_PCT_HH_SMARTPHONE_ZC + ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP
-
+### sdoh 2013###
 sdoh_2013 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2013.csv")
 sdoh_2013 <- sdoh_2013 %>% filter(ZIPCODE %in% ood_data_2013$zip_new)
-sdoh_2013 <- sdoh_2013 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
-                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP","ACS_PCT_LT_HS_ZC","ACS_PCT_OTHER_INS_ZC"))
+sdoh_2013 <- sdoh_2013 %>% dplyr::select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+                                    , "ACS_PCT_PERSON_INC_BELOW99_ZC" , 
+                                    "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP",
+                                    "ACS_PCT_LT_HS_ZC","ACS_PCT_OTHER_INS_ZC"))
 
 
 colnames(sdoh_2013)[1] <- "zip_new"
 
 ood_data_2013 <- merge(ood_data_2013, sdoh_2013, by="zip_new")
+## add details of zipcode and there respective county ###
+df_ood_nvss_zipcode_level <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
+df_ood_nvss_zipcode_level <- df_ood_nvss_zipcode_level[,-1]
+colnames(df_ood_nvss_zipcode_level)[2] <- "zip_new"
+ood_data_2013$zip_new <- as.numeric(ood_data_2013$zip_new)
+zip_code_county_name <- df_ood_nvss_zipcode_level[,c(1,2)]
+ood_data_2013 <- merge(ood_data_2013, zip_code_county_name, by = "zip_new")
+ood_data_2013 <- ood_data_2013[,c(18,1:17)]
+
+####### sdoh 2014 #######
 sdoh_2014 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2014.csv")
 sdoh_2014 <- sdoh_2014 %>% filter(ZIPCODE %in% ood_data_2014$zip_new)
-sdoh_2014 <- sdoh_2014 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+sdoh_2014 <- sdoh_2014 %>% dplyr::select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
                                     , "ACS_PCT_PERSON_INC_BELOW99_ZC" , "ACS_PCT_HU_NO_VEH_ZC" ,
                                     "POS_DIST_ALC_ZP","ACS_PCT_LT_HS_ZC","ACS_PCT_OTHER_INS_ZC"))
 
@@ -339,10 +351,12 @@ sdoh_2014 <- sdoh_2014 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
 colnames(sdoh_2014)[1] <- "zip_new"
 
 ood_data_2014 <- merge(ood_data_2014, sdoh_2014, by="zip_new")
-
+ood_data_2014 <- merge(ood_data_2014, zip_code_county_name, by = "zip_new")
+ood_data_2014 <- ood_data_2014[,c(18,1:17)]
+###### sdoh 2015 #######3
 sdoh_2015 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2015.csv")
 sdoh_2015 <- sdoh_2015 %>% filter(ZIPCODE %in% ood_data_2015$zip_new)
-sdoh_2015 <- sdoh_2015 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+sdoh_2015 <- sdoh_2015 %>% dplyr::select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
                                     , "ACS_PCT_PERSON_INC_BELOW99_ZC" ,
                                     "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP","ACS_PCT_LT_HS_ZC",
                                     "ACS_PCT_OTHER_INS_ZC"))
@@ -350,10 +364,13 @@ sdoh_2015 <- sdoh_2015 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
 colnames(sdoh_2015)[1] <- "zip_new"
 
 ood_data_2015 <- merge(ood_data_2015, sdoh_2015, by="zip_new")
+ood_data_2015 <- merge(ood_data_2015, zip_code_county_name, by = "zip_new")
+ood_data_2015 <- ood_data_2015[,c(18,1:17)]
 
+########## sdoh 2016###########3
 sdoh_2016 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2016.csv")
 sdoh_2016 <- sdoh_2016 %>% filter(ZIPCODE %in% ood_data_2016$zip_new)
-sdoh_2016 <- sdoh_2016 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+sdoh_2016 <- sdoh_2016 %>% dplyr::select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
                                     , "ACS_PCT_PERSON_INC_BELOW99_ZC" ,
                                     "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP",
                                     "ACS_PCT_LT_HS_ZC","ACS_PCT_OTHER_INS_ZC"))
@@ -361,10 +378,13 @@ sdoh_2016 <- sdoh_2016 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
 
 colnames(sdoh_2016)[1] <- "zip_new"
 ood_data_2016 <- merge(ood_data_2016, sdoh_2016, by="zip_new")
+ood_data_2016 <- merge(ood_data_2016, zip_code_county_name, by = "zip_new")
+ood_data_2016 <- ood_data_2016[,c(18,1:17)]
 
+########## sdoh 2017########
 sdoh_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Health Determinant ZIPCODE 2017-2018/Fixed Effect SDOH data set/sdoh_2017.csv")
 sdoh_2017 <- sdoh_2017 %>% filter(ZIPCODE %in% ood_data_2017$zip_new)
-sdoh_2017 <- sdoh_2017 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
+sdoh_2017 <- sdoh_2017 %>% dplyr::select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
                                     , "ACS_PCT_PERSON_INC_BELOW99_ZC" , 
                                     "ACS_PCT_HU_NO_VEH_ZC" , "POS_DIST_ALC_ZP",
                                     "ACS_PCT_LT_HS_ZC","ACS_PCT_OTHER_INS_ZC"))
@@ -372,6 +392,123 @@ sdoh_2017 <- sdoh_2017 %>% select(c("ZIPCODE", "ACS_PCT_UNEMPLOY_ZC"
 
 colnames(sdoh_2017)[1] <- "zip_new"
 ood_data_2017 <- merge(ood_data_2017, sdoh_2017, by="zip_new")
+ood_data_2017 <- merge(ood_data_2017, zip_code_county_name, by = "zip_new")
+ood_data_2017 <- ood_data_2017[,c(18,1:17)]
+############### opioid dispensing rate #################33
+
+#### opioids for total_rx and total_naloxone 2013###
+library(haven)
+opioids_2013<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2013.sas7bdat")
+opioids_2013_PA <- opioids_2013 %>% filter(st_code=="PA")
+county_wise_total_rx_2013 <- opioids_2013_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx_2013$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
+setdiff(nvss_ood_county_wise_2013_2017$GEOID,county_wise_total_rx_2013$state_fip_county_fip)
+### opioid back tracing for fulton ###
+opioids_2014_PA_fulton <- opioids_2014_PA %>% filter(county_nm== "FULTON")
+opioids_2015_PA_fulton <- opioids_2015_PA %>% filter(county_nm== "FULTON")
+fulton_longitudnal_data <- rbind(opioids_2014_PA_fulton,opioids_2015_PA_fulton)
+fulton_cumulative_total_dose_rx_year <- fulton_longitudnal_data %>% group_by(year) %>% summarise(total_rx =sum(total_rx), total_dose=sum(total_dose))
+#### the linear model prediction##
+new_data <- data.frame(year=2013)
+total_dose_lm <- lm(total_dose ~ year,data=fulton_cumulative_total_dose_rx_year )
+predicted_dose <- predict(total_dose_lm,newdata = new_data)
+### prediction for total_rx####
+total_rx_lm <- lm(total_rx ~ year, data=fulton_cumulative_total_dose_rx_year)
+predicted_rx <- predict(total_rx_lm,newdata = new_data)
+### getting the data in county_wise_total_rs
+missing_county_data <- data.frame(county_nm = "FULTON", state_fip_county_fip = 42057, 
+                                  total_rx = predicted_rx, total_dose = predicted_dose)
+county_wise_total_rx_2013 <- rbind(county_wise_total_rx_2013,missing_county_data)
+county_wise_total_rx_2013 <- county_wise_total_rx_2013 %>%  arrange(county_wise_total_rx_2013$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2013 <- cbind(county_wise_total_rx_2013,county_Wise_zip_codes)
+county_wise_total_rx_2013 <- county_wise_total_rx_2013[,-1]
+county_wise_total_rx_2013 <- county_wise_total_rx_2013 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2013)[5] <- "n"
+colnames(county_wise_total_rx_2013)[6] <- "total_rx_per_zip_codes"
+county_wise_total_rx_2013_total_dose <- county_wise_total_rx_2013[,c(2,3,4)]
+ood_data_2013 <- merge(ood_data_2013,county_wise_total_rx_2013_total_dose, by="county")
+ood_data_2013 <- ood_data_2013 %>% group_by(county) %>% mutate(population_proprtion = population/sum(population))
+ood_data_2013 <- ood_data_2013 %>% mutate(total_dose_population_proprtion= total_dose*population_proprtion)
+ood_data_2013 <- ood_data_2013 %>% ungroup(county) %>%  mutate(total_dose_population_proprtion_per_capita=total_dose_population_proprtion/population)
+
+#### opioids for total_rx and total_naloxone 2014###
+opioids_2014<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2014.sas7bdat")
+opioids_2014_PA <- opioids_2014 %>% filter(st_code=="PA")
+county_wise_total_rx_2014 <- opioids_2014_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2014 <- cbind(county_wise_total_rx_2014,county_Wise_zip_codes)
+county_wise_total_rx_2014 <- county_wise_total_rx_2014[,-1]
+county_wise_total_rx_2014 <- county_wise_total_rx_2014 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2014)[5] <- "n"
+colnames(county_wise_total_rx_2014)[6] <- "total_rx_per_zip_codes"
+county_wise_total_rx_2014_total_dose <- county_wise_total_rx_2014[,c(2,3,4)]
+ood_data_2014 <- merge(ood_data_2014,county_wise_total_rx_2014_total_dose, by="county")
+ood_data_2014 <- ood_data_2014 %>% group_by(county) %>% mutate(population_proprtion = population/sum(population))
+ood_data_2014 <- ood_data_2014 %>% mutate(total_dose_population_proprtion= total_dose*population_proprtion)
+ood_data_2014 <- ood_data_2014 %>% ungroup(county) %>%  mutate(total_dose_population_proprtion_per_capita=total_dose_population_proprtion/population)
+
+#### opioids for total_rx and total_naloxone 2015###
+opioids_2015<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2015.sas7bdat")
+opioids_2015_PA <- opioids_2015 %>% filter(st_code=="PA")
+county_wise_total_rx_2015 <- opioids_2015_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2015 <- cbind(county_wise_total_rx_2015,county_Wise_zip_codes)
+county_wise_total_rx_2015 <- county_wise_total_rx_2015[,-1]
+county_wise_total_rx_2015 <- county_wise_total_rx_2015 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2015)[5] <- "n"
+colnames(county_wise_total_rx_2015)[6] <- "total_rx_per_zip_codes"
+county_wise_total_rx_2015_total_dose <- county_wise_total_rx_2015[,c(2,3,4)]
+ood_data_2015 <- merge(ood_data_2015,county_wise_total_rx_2015_total_dose, by="county")
+ood_data_2015 <- ood_data_2015 %>% group_by(county) %>% mutate(population_proprtion = population/sum(population))
+ood_data_2015 <- ood_data_2015 %>% mutate(total_dose_population_proprtion= total_dose*population_proprtion)
+ood_data_2015 <- ood_data_2015 %>% ungroup(county) %>%  mutate(total_dose_population_proprtion_per_capita=total_dose_population_proprtion/population)
+
+#### opioids for total_rx and total_naloxone 2016###
+opioids_2016<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2016.sas7bdat")
+opioids_2016_PA <- opioids_2016 %>% filter(st_code=="PA")
+county_wise_total_rx_2016 <- opioids_2016_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2016 <- cbind(county_wise_total_rx_2016,county_Wise_zip_codes)
+county_wise_total_rx_2016 <- county_wise_total_rx_2016[,-1]
+county_wise_total_rx_2016 <- county_wise_total_rx_2016 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2016)[6] <- "total_rx_per_zip_codes"
+county_wise_total_rx_2016_total_dose <- county_wise_total_rx_2016[,c(2,3,4)]
+ood_data_2016 <- merge(ood_data_2016,county_wise_total_rx_2016_total_dose, by="county")
+ood_data_2016 <- ood_data_2016 %>% group_by(county) %>% mutate(population_proprtion = population/sum(population))
+ood_data_2016 <- ood_data_2016 %>% mutate(total_dose_population_proprtion= total_dose*population_proprtion)
+ood_data_2016 <- ood_data_2016 %>% ungroup(county) %>%  mutate(total_dose_population_proprtion_per_capita=total_dose_population_proprtion/population)
+#### opioids for total_rx and total_naloxone 2017###
+opioids_2017<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2017.sas7bdat")
+opioids_2017_PA <- opioids_2017 %>% filter(st_code=="PA")
+county_wise_total_rx_2017 <- opioids_2017_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx$state_fip_county_fip <- as.numeric(county_wise_total_rx$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2017 <- cbind(county_wise_total_rx_2017,county_Wise_zip_codes)
+county_wise_total_rx_2017 <- county_wise_total_rx_2017[,-1]
+county_wise_total_rx_2017 <- county_wise_total_rx_2017 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2017)[6] <- "total_rx_per_zip_codes"
+
+county_wise_total_rx_2017_total_dose <- county_wise_total_rx_2017[,c(2,3,4)]
+ood_data_2017 <- merge(ood_data_2017,county_wise_total_rx_2017_total_dose, by="county")
+ood_data_2017 <- ood_data_2017 %>% group_by(county) %>% mutate(population_proprtion = population/sum(population))
+ood_data_2017 <- ood_data_2017 %>% mutate(total_dose_population_proprtion= total_dose*population_proprtion)
+ood_data_2017 <- ood_data_2017 %>% ungroup(county) %>% 
+  mutate(total_dose_population_proprtion_per_capita=total_dose_population_proprtion/population)
+
+
+
+
+
+
 
 
 #### opioid prescription rate ####
@@ -419,6 +556,14 @@ fixed_effect_data <- rbind(ood_data_2013,ood_data_2014,ood_data_2015,ood_data_20
 fixed_effect_data <- replace(fixed_effect_data, is.na(fixed_effect_data), 0)
 
 
+return_data <- df_ood_nvss_zipcode_level[,c()]
+
+library(PerformanceAnalytics)
+chart.Correlation(df_ood_nvss_zipcode_level[] )
+
+
+
+
 library(lfe)
 # Assuming your data is in a dataframe called 'data'
 model_felm <- felm(deaths_per_capta ~ s_values +  ACS_PCT_UNEMPLOY_ZC + ACS_PCT_PERSON_INC_BELOW99_ZC + ACS_PCT_HU_NO_VEH_ZC + POS_DIST_ALC_ZP +mean_OPR | zip_new + year, data = fixed_effect_data_1)
@@ -428,4 +573,21 @@ MODEL <- feols(deaths_per_capta ~ s_values + d_values + ACS_PCT_UNEMPLOY_ZC + AC
 summary(MODEL)
 stargazer(MODEL)
 fixef(MODEL)
+library(stargazer)
 
+# Assuming your model object is named MODEL
+stargazer(MODEL, type = "text", title = "Fixed Effects Model", digits = 4,
+          covariate.labels = c("s_values", "d_values", "ACS_PCT_UNEMPLOY_ZC", "ACS_PCT_PERSON_INC_BELOW99_ZC",
+                               "ACS_PCT_HU_NO_VEH_ZC", "POS_DIST_ALC_ZP", "ACS_PCT_LT_HS_ZC", "ACS_PCT_OTHER_INS_ZC", "mean_OPR"),
+          omit.stat = c("f", "ser"), align = TRUE)
+library(texreg)
+
+# Assuming your model object is named MODEL
+texreg(MODEL, custom.model.names = "Fixed Effects Model",
+          custom.coef.names = c("s_values", "d_values", "ACS_PCT_UNEMPLOY_ZC", "ACS_PCT_PERSON_INC_BELOW99_ZC",
+                                "ACS_PCT_HU_NO_VEH_ZC", "POS_DIST_ALC_ZP", "ACS_PCT_LT_HS_ZC", "ACS_PCT_OTHER_INS_ZC", "mean_OPR"),
+          digits = 4)
+texreg(, custom.model.names = "Fixed Effects Model",
+       custom.coef.names = c("s_values", "d_values", "ACS_PCT_UNEMPLOY_ZC", "ACS_PCT_PERSON_INC_BELOW99_ZC",
+                             "ACS_PCT_HU_NO_VEH_ZC", "POS_DIST_ALC_ZP", "ACS_PCT_LT_HS_ZC", "ACS_PCT_OTHER_INS_ZC", "mean_OPR"),
+       digits = 4)
