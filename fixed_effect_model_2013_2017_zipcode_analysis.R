@@ -504,51 +504,132 @@ ood_data_2017 <- ood_data_2017 %>% mutate(total_dose_population_proprtion= total
 ood_data_2017 <- ood_data_2017 %>% ungroup(county) %>% 
   mutate(total_dose_population_proprtion_per_capita=total_dose_population_proprtion/population)
 
+##### naloxone available 2017 #####
+naloxone_2017 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2017.sas7bdat")
+naloxone_2017 <- naloxone_2017 %>% filter(st_code=="PA") %>% group_by(county_nm,state_and_county_fip) %>% summarise(cumulative_rx=sum(total_rx))
+missing_data_2017 <- setdiff(county_wise_total_rx_2017$state_fip_county_fip, naloxone_2017$state_and_county_fip)
+attributes_for_missing_data <- opioids_2017_PA %>% filter(state_fip_county_fip==missing_data_2017)
+attributes_for_missing_data <- attributes_for_missing_data[1,c(2,3)]
+colnames(attributes_for_missing_data)[2] <- "state_and_county_fip"
+attributes_for_missing_data <- attributes_for_missing_data %>% mutate(cumulative_rx=0.0)
+naloxone_2017 <- rbind(naloxone_2017, attributes_for_missing_data)
+naloxone_2017 <- arrange(naloxone_2017, county_nm)
+county_Wise_zip_codes <-  unique(ood_data_2017$county)
+naloxone_2017$county <- county_Wise_zip_codes
+naloxone_2017 <- naloxone_2017[,c(4,3)]
+colnames(naloxone_2017)[2] <- "naloxone_available"
+ood_data_2017 <- merge(ood_data_2017,naloxone_2017)
+ood_data_2017 <- ood_data_2017 %>% mutate(naloxone_population_proprtion= naloxone_available*population_proprtion)
+ood_data_2017 <- ood_data_2017 %>% mutate(naloxone_per_capita=naloxone_population_proprtion/population )
+##### naloxone available 2016 #####
+naloxone_2016 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2016.sas7bdat")
+naloxone_2016 <- naloxone_2016 %>% filter(st_code=="PA") %>% group_by(county_nm,state_and_county_fip) %>% summarise(cumulative_rx=sum(total_rx))
+missing_data_2016 <- setdiff(county_wise_total_rx_2016$state_fip_county_fip, naloxone_2016$state_and_county_fip)
+attributes_for_missing_data_2016 <- opioids_2016_PA %>% filter(state_fip_county_fip==missing_data_2016)
+attributes_for_missing_data_2016 <- attributes_for_missing_data_2016 %>% distinct(county_nm, state_fip_county_fip)
+colnames(attributes_for_missing_data_2016)[2] <- "state_and_county_fip"
+attributes_for_missing_data_2016 <- attributes_for_missing_data_2016 %>% mutate(cumulative_rx=0.0)
+naloxone_2016 <- rbind(naloxone_2016, attributes_for_missing_data_2016)
+naloxone_2016 <- arrange(naloxone_2016, county_nm)
+county_Wise_zip_codes <-  unique(ood_data_2016$county)
+naloxone_2016$county <- county_Wise_zip_codes
+naloxone_2016 <- naloxone_2016[,c(4,3)]
+colnames(naloxone_2016)[2] <- "naloxone_available"
+ood_data_2016 <- merge(ood_data_2016,naloxone_2016)
+ood_data_2016 <- ood_data_2016 %>% mutate(naloxone_population_proprtion= naloxone_available*population_proprtion)
+ood_data_2016 <- ood_data_2016 %>% mutate(naloxone_per_capita=naloxone_population_proprtion/population )
+################# naloxone available 2015##############
+naloxone_2015 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2015.sas7bdat")
+naloxone_2015 <- naloxone_2015 %>% filter(st_code=="PA") %>% group_by(county_nm,state_and_county_fip) %>% summarise(cumulative_rx=sum(total_rx))
+missing_data_2015 <- setdiff(county_wise_total_rx_2015$state_fip_county_fip, naloxone_2015$state_and_county_fip)
+attributes_for_missing_data_2015 <- opioids_2015_PA %>% filter(state_fip_county_fip==missing_data_2015)
+attributes_for_missing_data_2015 <- attributes_for_missing_data_2015 %>% distinct(county_nm, state_fip_county_fip)
+colnames(attributes_for_missing_data_2015)[2] <- "state_and_county_fip"
+attributes_for_missing_data_2015 <- attributes_for_missing_data_2015 %>% mutate(cumulative_rx=0.0)
+naloxone_2015 <- rbind(naloxone_2015, attributes_for_missing_data_2015)
+naloxone_2015 <- arrange(naloxone_2015, county_nm)
+county_Wise_zip_codes <-  unique(ood_data_2015$county)
+naloxone_2015$county <- county_Wise_zip_codes
+naloxone_2015 <- naloxone_2015[,c(4,3)]
+colnames(naloxone_2015)[2] <- "naloxone_available"
+ood_data_2015 <- merge(ood_data_2015,naloxone_2015)
+ood_data_2015 <- ood_data_2015 %>% mutate(naloxone_population_proprtion= naloxone_available*population_proprtion)
+ood_data_2015 <- ood_data_2015 %>% mutate(naloxone_per_capita=naloxone_population_proprtion/population )
+################# naloxone available 2014#####
+naloxone_2014 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2014.sas7bdat")
+naloxone_2014 <- naloxone_2014 %>% filter(st_code=="PA") %>% group_by(county_nm,state_and_county_fip) %>% summarise(cumulative_rx=sum(total_rx))
+missing_data_2014 <- setdiff(county_wise_total_rx_2014$state_fip_county_fip, naloxone_2014$state_and_county_fip)
+attributes_for_missing_data_2014 <- opioids_2014_PA %>% filter(state_fip_county_fip %in% missing_data_2014)
+attributes_for_missing_data_2014 <- attributes_for_missing_data_2014 %>% distinct(county_nm, state_fip_county_fip)
+colnames(attributes_for_missing_data_2014)[2] <- "state_and_county_fip"
+attributes_for_missing_data_2014 <- attributes_for_missing_data_2014 %>% mutate(cumulative_rx=0.0)
+naloxone_2014 <- rbind(naloxone_2014, attributes_for_missing_data_2014)
+naloxone_2014 <- arrange(naloxone_2014, county_nm)
+county_Wise_zip_codes <-  unique(ood_data_2014$county)
+naloxone_2014$county <- county_Wise_zip_codes
+naloxone_2014 <- naloxone_2014[,c(4,3)]
+colnames(naloxone_2014)[2] <- "naloxone_available"
+ood_data_2014 <- merge(ood_data_2014,naloxone_2014)
+ood_data_2014 <- ood_data_2014 %>% mutate(naloxone_population_proprtion= naloxone_available*population_proprtion)
+ood_data_2014 <- ood_data_2014 %>% mutate(naloxone_per_capita=naloxone_population_proprtion/population )
+########### naloxone available 2013 ##########
+naloxone_2013 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2013.sas7bdat")
+naloxone_2013 <- naloxone_2013 %>% filter(st_code=="PA") %>% group_by(county_nm,state_and_county_fip) %>% summarise(cumulative_rx=sum(total_rx))
+missing_data_2013 <- setdiff(county_wise_total_rx_2014$state_fip_county_fip, naloxone_2013$state_and_county_fip)
+attributes_for_missing_data_2013 <- opioids_2014_PA %>% filter(state_fip_county_fip %in% missing_data_2013)
+attributes_for_missing_data_2013 <- attributes_for_missing_data_2013 %>% distinct(county_nm, state_fip_county_fip)
+colnames(attributes_for_missing_data_2013)[2] <- "state_and_county_fip"
+attributes_for_missing_data_2013 <- attributes_for_missing_data_2013 %>% mutate(cumulative_rx=0.0)
+naloxone_2013 <- rbind(naloxone_2013, attributes_for_missing_data_2013)
+naloxone_2013 <- arrange(naloxone_2013, county_nm)
+county_Wise_zip_codes <-  unique(ood_data_2013$county)
+naloxone_2013$county <- county_Wise_zip_codes
+naloxone_2013 <- naloxone_2013[,c(4,3)]
+colnames(naloxone_2013)[2] <- "naloxone_available"
+ood_data_2013 <- merge(ood_data_2013,naloxone_2013)
+ood_data_2013 <- ood_data_2013 %>% mutate(naloxone_population_proprtion= naloxone_available*population_proprtion)
+ood_data_2013 <- ood_data_2013 %>% mutate(naloxone_per_capita=naloxone_population_proprtion/population )
 
 
 
-
-
-
-
-#### opioid prescription rate ####
-# https://data.cms.gov/summary-statistics-on-use-and-payments/medicare-medicaid-opioid-prescribing-rates/medicare-part-d-opioid-prescribing-rates-by-geography
-### for year 2013 ####
-opr <- read.csv('C:/Users/kusha/Desktop/Data for Paper/OPR/OPR.csv')
-opr_2013 <- opr %>% filter(Year==2013) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2013$zip_new)
-opr_2013 <- opr_2013 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
-colnames(opr_2013)[1] <- "zip_new"
-opr_2013 <- opr_2013 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
-ood_data_2013 <- merge(ood_data_2013, opr_2013, by="zip_new", all.x = TRUE)
-
-###### for year 2014 ####
-opr_2014 <- opr %>% filter(Year==2014) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2014$zip_new)
-opr_2014 <- opr_2014 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
-colnames(opr_2014)[1] <- "zip_new"
-opr_2014 <- opr_2014 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
-ood_data_2014 <- merge(ood_data_2014, opr_2014, by="zip_new", all.x = TRUE)
-#### for year 2015 ####
-opr_2015 <- opr %>% filter(Year==2015) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2015$zip_new)
-opr_2015 <- opr_2015 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
-colnames(opr_2015)[1] <- "zip_new"
-opr_2015 <- opr_2015 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
-ood_data_2015 <- merge(ood_data_2015, opr_2015, by="zip_new", all.x = TRUE)
-
-
-#### for year 2016 ####
-opr_2016 <- opr %>% filter(Year==2016) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2016$zip_new)
-opr_2016 <- opr_2016 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
-colnames(opr_2016)[1] <- "zip_new"
-opr_2016 <- opr_2016 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
-ood_data_2016 <- merge(ood_data_2016, opr_2016, by="zip_new", all.x = TRUE)
-
-
-#### for year 2017 ####
-opr_2017 <- opr %>% filter(Year==2017) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2017$zip_new)
-opr_2017 <- opr_2017 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
-colnames(opr_2017)[1] <- "zip_new"
-opr_2017 <- opr_2017 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
-ood_data_2017 <- merge(ood_data_2017, opr_2017, by="zip_new", all.x = TRUE)
+# #### opioid prescription rate ####
+# # https://data.cms.gov/summary-statistics-on-use-and-payments/medicare-medicaid-opioid-prescribing-rates/medicare-part-d-opioid-prescribing-rates-by-geography
+# ### for year 2013 ####
+# opr <- read.csv('C:/Users/kusha/Desktop/Data for Paper/OPR/OPR.csv')
+# opr_2013 <- opr %>% filter(Year==2013) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2013$zip_new)
+# opr_2013 <- opr_2013 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+# colnames(opr_2013)[1] <- "zip_new"
+# opr_2013 <- opr_2013 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+# ood_data_2013 <- merge(ood_data_2013, opr_2013, by="zip_new", all.x = TRUE)
+# 
+# ###### for year 2014 ####
+# opr_2014 <- opr %>% filter(Year==2014) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2014$zip_new)
+# opr_2014 <- opr_2014 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+# colnames(opr_2014)[1] <- "zip_new"
+# opr_2014 <- opr_2014 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+# ood_data_2014 <- merge(ood_data_2014, opr_2014, by="zip_new", all.x = TRUE)
+# #### for year 2015 ####
+# opr_2015 <- opr %>% filter(Year==2015) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2015$zip_new)
+# opr_2015 <- opr_2015 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+# colnames(opr_2015)[1] <- "zip_new"
+# opr_2015 <- opr_2015 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+# ood_data_2015 <- merge(ood_data_2015, opr_2015, by="zip_new", all.x = TRUE)
+# 
+# 
+# #### for year 2016 ####
+# opr_2016 <- opr %>% filter(Year==2016) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2016$zip_new)
+# opr_2016 <- opr_2016 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+# colnames(opr_2016)[1] <- "zip_new"
+# opr_2016 <- opr_2016 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+# ood_data_2016 <- merge(ood_data_2016, opr_2016, by="zip_new", all.x = TRUE)
+# 
+# 
+# #### for year 2017 ####
+# opr_2017 <- opr %>% filter(Year==2017) %>%  filter(Prscrbr_Geo_Lvl== "ZIP") %>%  filter(Prscrbr_Geo_Cd %in% ood_data_2017$zip_new)
+# opr_2017 <- opr_2017 %>% select(Prscrbr_Geo_Cd, Opioid_Prscrbng_Rate )
+# colnames(opr_2017)[1] <- "zip_new"
+# opr_2017 <- opr_2017 %>% group_by(zip_new) %>% summarise(mean_OPR = mean(Opioid_Prscrbng_Rate ))
+# ood_data_2017 <- merge(ood_data_2017, opr_2017, by="zip_new", all.x = TRUE)
 
 
 ########## fixed effect data ###
