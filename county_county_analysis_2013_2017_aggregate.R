@@ -82,7 +82,7 @@ census_data_frame <- merge(Soc.2017,pa_hh_income,by="NAME")
 
 
 #### nvss 2013-2015 data###
-ood_data_2013_2015 <- read.csv('Combined_Drug_1999_2015.csv')
+ood_data_2013_2015 <-  read.csv('C:/Users/kusha/Desktop/Data for Paper/NVSS Data/Combined_Drug_1999_2015.csv')
 library(lubridate)
 ood_data_2013_2015$dod<- mdy(ood_data_2013_2015$dod)
 ood_data_2013_2015$dod <- as.Date(ood_data_2013_2015$dod)
@@ -90,7 +90,7 @@ ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(between(dod,as.Date('2013-01
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40","X41","X42","X43","X44"))
 deaths_in_county_in_2013_2015 <- count(ood_data_2013_2015,county_name)                          
 
-data_2016_2017 <- read.csv('Combined_Drug_2016_2017.csv')
+data_2016_2017 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NVSS Data/Combined_Drug_2016_2017.csv')
 ## This is a private data set of opioid-related deaths in PA that include location and cause 
 table(data_2016_2017$COD)
 opioid_death_2016_2017 <- data_2016_2017 %>% filter(data_2016_2017$COD %in% c("X40","X41","X42","X43","X44"))
@@ -101,7 +101,7 @@ colnames(n_ood)[1] <-'County'
 n_ood$County <- as.character(n_ood$County)
 ### using census dataframe to gather Geoid and using incident data to gather County Name##
 ### conversion of string characters did not work tried it with UTF-8 TO ASCII//TRANSLIT##
-opioid_incident_data_pa_gov <- read.csv("data.csv")
+opioid_incident_data_pa_gov <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Incident Data/data.csv")
 county_name <- unique(opioid_incident_data_pa_gov$Incident.County.Name)
 county_name <- toupper(county_name)
 deaths_in_county_in_2016_2017 <- n_ood %>% dplyr::filter(County %in% county_name)
@@ -126,27 +126,29 @@ colnames(aggregated_ood_per_capita_events_in_each_county)[1] <- "fr_loc"
 colnames(aggregated_ood_per_capita_events_in_each_county)[2] <- "deaths_per_capita"
 
 #### sci_proximity####
-df_0 <- read_tsv ('county_county.tsv')
-df_0 <- df_0 %>% dplyr::mutate(probabilites=scaled_sci/(1000000000)) 
+df_0 <- read_tsv ('C:/Users/kusha/Desktop/Data for Paper/SCI/county_county.tsv')
 df_1 <- df_0 %>% dplyr::filter(user_loc %in% aggregated_ood_per_capita_events_in_each_county$fr_loc & fr_loc %in% aggregated_ood_per_capita_events_in_each_county$fr_loc)
 df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
 df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
 df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc)))) ##unique pairs + self loops
-df_s <- merge(df_1,aggregated_ood_per_capita_events_in_each_county,by="fr_loc")
-df_s <- df_s %>% mutate(wt_sci=probabilites*deaths_per_capita)
-dataframe_for_matrix <- df_s %>% dplyr::select(c(user_loc,fr_loc,wt_sci))
-nodes <- df_s %>% distinct(user_loc)
-g <- graph.data.frame(dataframe_for_matrix, directed=F, vertices=nodes)
-sci_proximity <- as_adjacency_matrix(g,attr = "wt_sci",sparse = F)
-diag(sci_proximity) <- 0
-df_for_matrix_probability <- df_s %>% dplyr::select(c(user_loc,fr_loc,probabilites))
-df_for_matrix_probability
-k <- graph.data.frame(df_for_matrix_probability, directed=F, vertices=nodes)
-cumulative_sci <- as_adjacency_matrix(k,attr="probabilites",sparse=F)
-row_wise_sum_sci <- rowSums(cumulative_sci)
-row_wise_sum_sci
-sci_proximity_county <- sweep(sci_proximity,2,row_wise_sum_sci,FUN="/")
-deaths_social_proximity_county<- rowSums(sci_proximity_county)
+df_for_matrix_weights <- df_1 %>% dplyr::select(c(user_loc,fr_loc,scaled_sci))
+df_for_matrix_weights
+nodes <- df_1 %>% distinct(fr_loc)
+k <- graph.data.frame(df_for_matrix_weights, directed=F, vertices=nodes)
+cumulative_sci_weighted <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
+cumulative_sci_weighted <- as.matrix(cumulative_sci_weighted)
+diag(cumulative_sci_weighted) <- 0
+population <- census_data_frame$population
+for(i in 1:ncol(cumulative_sci_weighted)){
+  cumulative_sci_weighted[,i] <- cumulative_sci_weighted[,i] * population[i]
+}
+row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
+cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
+v <- aggregated_ood_per_capita_events_in_each_county$deaths_per_capita
+for(i in 1:ncol(cumulative_sci_weighted_test)){
+  cumulative_sci_weighted_test[,i] <- cumulative_sci_weighted_test[,i] * v[i]
+}
+sci_proximity_county_2013_2017 <- rowSums(cumulative_sci_weighted_test)
 
 #### physical proximity ###
 ### reading nalxone file from data pa gov to get the spatial centroids for each county
@@ -160,24 +162,23 @@ colnames(df)[3] <- "Longitude"
 df <- df[,c(1,3,2)]
 df$Longitude <- as.numeric(df$Longitude)
 df$Latitude <-as.numeric(df$Latitude)
-distance_matrix <- geodist(df, measure = 'geodesic' )/1000 #converting it to km
-distance_matrix <- (1+distance_matrix)
-distance_matrix<- distance_matrix**(-1)
+distance_matrix <- geodist(df, measure = 'geodesic') / 1000 # converting it to km
+distance_matrix <- 1 + distance_matrix
+distance_matrix <- distance_matrix**(-1)
+diag(distance_matrix) <- 0
 colnames(distance_matrix) <- df$county
 rownames(distance_matrix) <- df$county
-d_i_j<- data.frame(distance_matrix)
-normalised_scale <- colSums(d_i_j)
-normalised_scale
-county_distance_proximity<- d_i_j
-colnames(county_distance_proximity) <- df$county
-rownames(county_distance_proximity) <- df$county
-diag(county_distance_proximity) <- 0
-county_distance_proximity
-county_wise_ood_deaths_per_capita <- aggregated_ood_per_capita_events_in_each_county$deaths_per_capita
-county_physical_proximity_dij <- sweep(county_distance_proximity,2,county_wise_ood_deaths_per_capita ,FUN="*")
-county_normalised_physical_porximity <- sweep(county_physical_proximity_dij,2,normalised_scale,FUN="/")
-deaths_spatial_proximity_county=rowSums(county_normalised_physical_porximity)
-deaths_spatial_proximity_county
+y <- aggregated_ood_per_capita_events_in_each_county$deaths_per_capita
+a_i_j <- data.frame(distance_matrix)
+diag(a_i_j) <- 0
+a_i_j <- as.matrix(a_i_j)
+
+# Normalize a_i_j
+normalised_scale <- rowSums(a_i_j)
+a_i_j <- a_i_j / normalised_scale
+
+# Perform matrix multiplication
+d_minus_i <- a_i_j %*% y
 ####### naloxone adminitered###
 naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
 data_naloxone <- naloxone
@@ -232,7 +233,7 @@ health_determinant <- filter(health_determinant$STATE== "Pennsylvania")
 
 
 ### Multiple Linear regression and Wtd Linear Regression #####
-nvss_ood_county_wise_2013_2017 <- read.csv("nvss_ood_county_wise_2013_2017.csv")
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
 glimpse(nvss_ood_county_wise_2013_2017)
 
 nvss_county_county_aggregated_regression <- lm(deaths_per_capita~ log(county_deaths_social_proximity)+log(county_deaths_spatial_proximity)+naloxone+illicit_drug_seizures_mme_per_county+hh_income, data=nvss_ood_county_wise_2013_2017)
