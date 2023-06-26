@@ -13,6 +13,7 @@ library(zipcodeR) #for ZIP codes
 library(fuzzyjoin)
 library(tidycensus)
 library(geodist)
+library(haven)
 
 #### getting demographic properties for counties using Tidycensus package###
 race_vars <- c(
@@ -179,15 +180,30 @@ a_i_j <- a_i_j / normalised_scale
 
 # Perform matrix multiplication
 d_minus_i <- a_i_j %*% y
-####### naloxone adminitered###
-naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
-data_naloxone <- naloxone
-data_naloxone <- data_naloxone %>% dplyr::select(County.Name,Cumulative.Kits.Provided)
-data_naloxone <- data_naloxone[order(data_naloxone$County.Name),]
-colnames(data_naloxone)[1] <- "county"
-data_naloxone$Cumulative.Kits.Provided <- as.numeric(gsub(",","",data_naloxone$Cumulative.Kits.Provided))
-data_naloxone <- data_naloxone %>% mutate(county= gsub("(.*),.*", "\\1", data_naloxone$county))
-data_naloxone$naloxone_per_capita <- scale(data_naloxone$Cumulative.Kits.Provided/Soc.2017$population)
+####### naloxone available###
+# naloxone <- read.csv("https://data.pa.gov/api/views/xqrx-inrr/rows.csv?accessType=DOWNLOAD&bom=true&format=true")
+# data_naloxone <- naloxone
+# data_naloxone <- data_naloxone %>% dplyr::select(County.Name,Cumulative.Kits.Provided)
+# data_naloxone <- data_naloxone[order(data_naloxone$County.Name),]
+# colnames(data_naloxone)[1] <- "county"
+# data_naloxone$Cumulative.Kits.Provided <- as.numeric(gsub(",","",data_naloxone$Cumulative.Kits.Provided))
+# data_naloxone <- data_naloxone %>% mutate(county= gsub("(.*),.*", "\\1", data_naloxone$county))
+# data_naloxone$naloxone_per_capita <- scale(data_naloxone$Cumulative.Kits.Provided/Soc.2017$population)
+naloxone_2013 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2013.sas7bdat")
+naloxone_2014 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2014.sas7bdat")
+naloxone_2015 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2015.sas7bdat")
+naloxone_2016 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2016.sas7bdat")
+naloxone_2017 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2017.sas7bdat")
+total_naloxone <- rbind(naloxone_2013, naloxone_2014, naloxone_2015, naloxone_2016, naloxone_2017)
+total_naloxone <- total_naloxone %>% filter(st_code=="PA") %>%  group_by(county_nm,state_and_county_fip) %>% 
+  summarise(avg_total_rx = mean(total_rx, na.rm = TRUE))
+total_naloxone$state_and_county_fip <- as.numeric(total_naloxone$state_and_county_fip)
+county <- unique(df_ood_nvss_zipcode_level$county)
+new_row <- data.frame(county_nm = "Cameron"  , state_and_county_fip = 42023, avg_total_rx = 0)
+total_naloxone <- rbind(total_naloxone,new_row)
+total_naloxone <- total_naloxone %>% arrange(state_and_county_fip)
+total_naloxone <- cbind(total_naloxone,county_Wise_zip_codes)
+total_naloxone <- total_naloxone[,-c(4,5)]
 #### odr###
 url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 sites <- url %>% html_nodes('td') %>% html_text()
