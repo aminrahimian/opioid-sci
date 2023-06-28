@@ -304,7 +304,23 @@ health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_co
 health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
 health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
 ##### creating the data frame ###
-
+nvss_ood_county_wise_2013_2017 <-Soc.2017
+nvss_ood_county_wise_2013_2017 <- cbind(Soc.2017,county_wise_ood_with_demogrpahic_information)
+nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(4,6,7)]
+colnames(nvss_ood_county_wise_2013_2017)[4] <- "deaths"
+### data frame for social spatial proximity ###
+proximity_df <- data.frame(d_minus_i,sci_proximity_county_2013_2017)
+#### data frame for clinical covariates####
+clinical_df <- data.frame(county_total_rx$cumulative_total_dose,total_naloxone$avg_total_rx)
+#### column binding the data frames ###
+nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,proximity_df)
+nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,clinical_df)
+nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,health_determinant_covariates)
+#### changing column names for spatial and social proximity ###
+colnames(nvss_ood_county_wise_2013_2017)[6] <- "deaths_spatial_porximity"
+colnames(nvss_ood_county_wise_2013_2017)[7] <- "deaths_social_proximity"
+colnames(nvss_ood_county_wise_2013_2017)[8] <- "ODR"
+colnames(nvss_ood_county_wise_2013_2017)[9] <- "Naloxone Available"
 
 # url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 # sites <- url %>% html_nodes('td') %>% html_text()
@@ -330,17 +346,15 @@ health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_co
 # illicit_opioid_Seizures_2013_2017 <- illicit_opioid_Seizures %>% group_by(County.Name) %>%  summarise(sum(MME))
 # colnames(illicit_opioid_Seizures_2013_2017)[1] <- "county"
 # colnames(illicit_opioid_Seizures_2013_2017)[2] <- "MME"
-nvss_ood_county_wise_2013_2017 <-Soc.2017
-nvss_ood_county_wise_2013_2017 <- cbind(Soc.2017,county_wise_ood_with_demogrpahic_information)
-nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(4,6,7)]
+
 nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,df)
 nvss_ood_county_wise_2013_2017$county_deaths_social_proximity <- deaths_social_proximity_county
 nvss_ood_county_wise_2013_2017$county_deaths_spatial_proximity <- deaths_spatial_proximity_county
-nvss_ood_county_wise_2013_2017$ODR <- ODR$ODR
-nvss_ood_county_wise_2013_2017$naloxone <- data_naloxone$naloxone_per_capita
-nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- illicit_opioid_Seizures_2013_2017$MME
-nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- scale(nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county)
-nvss_ood_county_wise_2013_2017$hh_income <- scale(pa_hh_income$estimate/nvss_ood_county_wise_2013_2017$population)
+# nvss_ood_county_wise_2013_2017$ODR <- ODR$ODR
+# nvss_ood_county_wise_2013_2017$naloxone <- data_naloxone$naloxone_per_capita
+# nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- illicit_opioid_Seizures_2013_2017$MME
+# nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- scale(nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county)
+# nvss_ood_county_wise_2013_2017$hh_income <- scale(pa_hh_income$estimate/nvss_ood_county_wise_2013_2017$population)
 write.csv(nvss_ood_county_wise_2013_2017, 'nvss_ood_county_wise_2013_2017.csv')
 
 
