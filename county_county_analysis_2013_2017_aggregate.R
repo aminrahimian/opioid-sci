@@ -14,7 +14,7 @@ library(fuzzyjoin)
 library(tidycensus)
 library(geodist)
 library(haven)
-
+library(scale)
 #### getting demographic properties for counties using Tidycensus package###
 race_vars <- c(
   White = "B03002_003",
@@ -204,31 +204,132 @@ total_naloxone <- rbind(total_naloxone,new_row)
 total_naloxone <- total_naloxone %>% arrange(state_and_county_fip)
 total_naloxone <- cbind(total_naloxone,county_Wise_zip_codes)
 total_naloxone <- total_naloxone[,-c(4,5)]
+total_naloxone$avg_total_rx <- rescale(total_naloxone$avg_total_rx,to=c(0,1))
 #### odr###
-url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
-sites <- url %>% html_nodes('td') %>% html_text()
-sites_1 <- sites[8977:9244]
-sites_2 <- data.frame(print(sites_1))
-ODR <- as.data.frame(t(matrix(sites_2[,1],nrow = 4)))
-colnames(ODR)[1] <- 'county'
-colnames(ODR)[2] <- 'State'
-colnames(ODR)[3] <- 'Fips Codes'
-colnames(ODR)[4] <- 'Opioid Dispensing Rate Per 100'
-ODR <- ODR %>% mutate(county= gsub("(.*),.*", "\\1", ODR$county))
-ODR$`Opioid Dispensing Rate Per 100` <- as.integer(as.character(ODR$`Opioid Dispensing Rate Per 100`))
-ODR$ODR <- scale(ODR$`Opioid Dispensing Rate Per 100`)
-### illicit drug source ###
-library(lubridate)
-illicit_opioid_Seizures <- read.csv("https://data.pa.gov/api/views/wmgc-6qvd/rows.csv?accessType=DOWNLOAD")
-illicit_opioid_Seizures$Qtr.Start.Date <- mdy(illicit_opioid_Seizures$Qtr.Start.Date)
-illicit_opioid_Seizures <- illicit_opioid_Seizures %>% filter(between(Qtr.Start.Date,as.Date('2013-01-01'), as.Date('2017-12-31')))
-#### CONVERTING INTO MME ###
-illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME_Coversion_Factor=case_when(Drug == "Fentanyl" ~ 0.125, Drug == "Heroin" ~ 1, Drug == "Opium" ~ 1 ))
-illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(Drug.Quantity_mmg = Drug.Quantity/1000)
-illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME = Drug.Quantity*MME_Coversion_Factor)
-illicit_opioid_Seizures_2013_2017 <- illicit_opioid_Seizures %>% group_by(County.Name) %>%  summarise(sum(MME))
-colnames(illicit_opioid_Seizures_2013_2017)[1] <- "county"
-colnames(illicit_opioid_Seizures_2013_2017)[2] <- "MME"
+library(haven)
+opioids_2013<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2013.sas7bdat")
+opioids_2013_PA <- opioids_2013 %>% filter(st_code=="PA")
+county_wise_total_rx_2013 <- opioids_2013_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx_2013$state_fip_county_fip <- as.numeric(county_wise_total_rx_2013$state_fip_county_fip)
+setdiff(nvss_ood_county_wise_2013_2017$GEOID,county_wise_total_rx_2013$state_fip_county_fip)
+### opioid back tracing for fulton ###
+opioids_2014<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2014.sas7bdat")
+opioids_2014_PA <- opioids_2014 %>% filter(st_code=="PA")
+opioids_2014_PA_fulton <- opioids_2014_PA %>% filter(county_nm== "FULTON")
+opioids_2015<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2015.sas7bdat")
+opioids_2015_PA <- opioids_2015 %>% filter(st_code=="PA")
+opioids_2015_PA_fulton <- opioids_2015_PA %>% filter(county_nm== "FULTON")
+fulton_longitudnal_data <- rbind(opioids_2014_PA_fulton,opioids_2015_PA_fulton)
+fulton_cumulative_total_dose_rx_year <- fulton_longitudnal_data %>% group_by(year) %>% summarise(total_rx =sum(total_rx), total_dose=sum(total_dose))
+#### the linear model prediction##
+new_data <- data.frame(year=2013)
+total_dose_lm <- lm(total_dose ~ year,data=fulton_cumulative_total_dose_rx_year )
+predicted_dose <- predict(total_dose_lm,newdata = new_data)
+### prediction for total_rx####
+total_rx_lm <- lm(total_rx ~ year, data=fulton_cumulative_total_dose_rx_year)
+predicted_rx <- predict(total_rx_lm,newdata = new_data)
+### getting the data in county_wise_total_rs
+missing_county_data <- data.frame(county_nm = "FULTON", state_fip_county_fip = 42057, 
+                                  total_rx = predicted_rx, total_dose = predicted_dose)
+county_wise_total_rx_2013 <- rbind(county_wise_total_rx_2013,missing_county_data)
+county_wise_total_rx_2013 <- county_wise_total_rx_2013 %>%  arrange(county_wise_total_rx_2013$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2013 <- cbind(county_wise_total_rx_2013,county_Wise_zip_codes)
+county_wise_total_rx_2013 <- county_wise_total_rx_2013[,-1]
+county_wise_total_rx_2013 <- county_wise_total_rx_2013 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2013)[5] <- "n"
+colnames(county_wise_total_rx_2013)[6] <- "total_rx_per_zip_codes"
+#### opioids for total_rx and total_naloxone 2014###
+opioids_2014<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2014.sas7bdat")
+opioids_2014_PA <- opioids_2014 %>% filter(st_code=="PA")
+county_wise_total_rx_2014 <- opioids_2014_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx_2014$state_fip_county_fip <- as.numeric(county_wise_total_rx_2014$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2014 <- cbind(county_wise_total_rx_2014,county_Wise_zip_codes)
+county_wise_total_rx_2014 <- county_wise_total_rx_2014[,-1]
+county_wise_total_rx_2014 <- county_wise_total_rx_2014 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2014)[5] <- "n"
+colnames(county_wise_total_rx_2014)[6] <- "total_rx_per_zip_codes"
+#### opioids for total_rx and total_naloxone 2015###
+opioids_2015<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2015.sas7bdat")
+opioids_2015_PA <- opioids_2015 %>% filter(st_code=="PA")
+county_wise_total_rx_2015 <- opioids_2015_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx_2015$state_fip_county_fip <- as.numeric(county_wise_total_rx_2015$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2015 <- cbind(county_wise_total_rx_2015,county_Wise_zip_codes)
+county_wise_total_rx_2015 <- county_wise_total_rx_2015[,-1]
+county_wise_total_rx_2015 <- county_wise_total_rx_2015 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2015)[5] <- "n"
+colnames(county_wise_total_rx_2015)[6] <- "total_rx_per_zip_codes"
+#### opioids for total_rx and total_naloxone 2016###
+opioids_2016<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2016.sas7bdat")
+opioids_2016_PA <- opioids_2016 %>% filter(st_code=="PA")
+county_wise_total_rx_2016 <- opioids_2016_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx_2016$state_fip_county_fip <- as.numeric(county_wise_total_rx_2016$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2016 <- cbind(county_wise_total_rx_2016,county_Wise_zip_codes)
+county_wise_total_rx_2016 <- county_wise_total_rx_2016[,-1]
+county_wise_total_rx_2016 <- county_wise_total_rx_2016 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2016)[6] <- "total_rx_per_zip_codes"
+#### opioids for total_rx and total_naloxone 2016###
+opioids_2017<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2017.sas7bdat")
+opioids_2017_PA <- opioids_2017 %>% filter(st_code=="PA")
+county_wise_total_rx_2017 <- opioids_2017_PA %>% group_by(county_nm, state_fip_county_fip) %>% summarise( total_rx=sum(total_rx), total_dose=sum(total_dose))
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+county_wise_total_rx_2017$state_fip_county_fip <- as.numeric(county_wise_total_rx_2017$state_fip_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
+county_wise_total_rx_2017 <- cbind(county_wise_total_rx_2017,county_Wise_zip_codes)
+county_wise_total_rx_2017 <- county_wise_total_rx_2017[,-1]
+county_wise_total_rx_2017 <- county_wise_total_rx_2017 %>% mutate(total_rx_per_zip_codes <- total_rx/n)
+colnames(county_wise_total_rx_2017)[6] <- "total_rx_per_zip_codes"
+###### opioid cumulative data frame######
+county_total_rx <- rbind(county_wise_total_rx_2013, county_wise_total_rx_2014, county_wise_total_rx_2015, county_wise_total_rx_2016, county_wise_total_rx_2017)
+county_total_rx <- county_total_rx %>% group_by(county, state_fip_county_fip) %>% summarise( cumulative_total_dose=sum(total_dose))
+county_total_rx$cumulative_total_dose <- rescale(county_total_rx$cumulative_total_dose,to=c(0,1))
+### here county total rx explains the cumulative dose from 2013-2017 administered in each county#############
+#### health determinant covariates###
+health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/SDOH_2017_COUNTY_aqhv.csv')
+health_determinant <- health_determinant %>% filter(STATE=="Pennsylvania")
+health_determinant_covariates <- health_determinant %>% dplyr::select(ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
+                                                                      ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
+                                                                      ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
+health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
+health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
+health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
+health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
+health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
+health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
+##### creating the data frame ###
+
+
+# url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
+# sites <- url %>% html_nodes('td') %>% html_text()
+# sites_1 <- sites[8977:9244]
+# sites_2 <- data.frame(print(sites_1))
+# ODR <- as.data.frame(t(matrix(sites_2[,1],nrow = 4)))
+# colnames(ODR)[1] <- 'county'
+# colnames(ODR)[2] <- 'State'
+# colnames(ODR)[3] <- 'Fips Codes'
+# colnames(ODR)[4] <- 'Opioid Dispensing Rate Per 100'
+# ODR <- ODR %>% mutate(county= gsub("(.*),.*", "\\1", ODR$county))
+# ODR$`Opioid Dispensing Rate Per 100` <- as.integer(as.character(ODR$`Opioid Dispensing Rate Per 100`))
+# ODR$ODR <- scale(ODR$`Opioid Dispensing Rate Per 100`)
+# ### illicit drug source ###
+# library(lubridate)
+# illicit_opioid_Seizures <- read.csv("https://data.pa.gov/api/views/wmgc-6qvd/rows.csv?accessType=DOWNLOAD")
+# illicit_opioid_Seizures$Qtr.Start.Date <- mdy(illicit_opioid_Seizures$Qtr.Start.Date)
+# illicit_opioid_Seizures <- illicit_opioid_Seizures %>% filter(between(Qtr.Start.Date,as.Date('2013-01-01'), as.Date('2017-12-31')))
+# #### CONVERTING INTO MME ###
+# illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME_Coversion_Factor=case_when(Drug == "Fentanyl" ~ 0.125, Drug == "Heroin" ~ 1, Drug == "Opium" ~ 1 ))
+# illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(Drug.Quantity_mmg = Drug.Quantity/1000)
+# illicit_opioid_Seizures <- illicit_opioid_Seizures %>% mutate(MME = Drug.Quantity*MME_Coversion_Factor)
+# illicit_opioid_Seizures_2013_2017 <- illicit_opioid_Seizures %>% group_by(County.Name) %>%  summarise(sum(MME))
+# colnames(illicit_opioid_Seizures_2013_2017)[1] <- "county"
+# colnames(illicit_opioid_Seizures_2013_2017)[2] <- "MME"
 nvss_ood_county_wise_2013_2017 <-Soc.2017
 nvss_ood_county_wise_2013_2017 <- cbind(Soc.2017,county_wise_ood_with_demogrpahic_information)
 nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(4,6,7)]
@@ -241,11 +342,6 @@ nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- illicit_o
 nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- scale(nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county)
 nvss_ood_county_wise_2013_2017$hh_income <- scale(pa_hh_income$estimate/nvss_ood_county_wise_2013_2017$population)
 write.csv(nvss_ood_county_wise_2013_2017, 'nvss_ood_county_wise_2013_2017.csv')
-
-#### health determinant covariates###
-health_determinant <- read.csv('county_2017.csv')
-health_determinant <- filter(health_determinant$STATE== "Pennsylvania")
-
 
 
 ### Multiple Linear regression and Wtd Linear Regression #####
