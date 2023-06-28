@@ -320,7 +320,16 @@ nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,health_de
 colnames(nvss_ood_county_wise_2013_2017)[6] <- "deaths_spatial_porximity"
 colnames(nvss_ood_county_wise_2013_2017)[7] <- "deaths_social_proximity"
 colnames(nvss_ood_county_wise_2013_2017)[8] <- "ODR"
-colnames(nvss_ood_county_wise_2013_2017)[9] <- "Naloxone Available"
+colnames(nvss_ood_county_wise_2013_2017)[9] <- "Naloxone_Available"
+
+##### nbr####
+summary(nb1 <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity
+                      + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
+                        + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                      + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
+                      +ODR+ Naloxone_Available, 
+                      data = nvss_ood_county_wise_2013_2017,weights=population,
+                      control = glm.control(maxit = 100)))
 
 # url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 # sites <- url %>% html_nodes('td') %>% html_text()
