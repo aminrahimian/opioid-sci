@@ -14,7 +14,7 @@ library(fuzzyjoin)
 library(tidycensus)
 library(geodist)
 library(haven)
-library(scale)
+library(scales)
 #### getting demographic properties for counties using Tidycensus package###
 race_vars <- c(
   White = "B03002_003",
@@ -97,9 +97,11 @@ table(data_2016_2017$COD)
 opioid_death_2016_2017 <- data_2016_2017 %>% filter(data_2016_2017$COD %in% c("X40","X41","X42","X43","X44"))
 table(opioid_death_2016_2017$COD)
 data_ood_2016 <- subset(opioid_death_2016_2017,select = c('fileno','Zip','COD','County', 'State'))
+#data_ood_2016 <- data_ood_2016 %>% filter(State=="PENNSYLVANIA")
 n_ood <- count(data_ood_2016,data_ood_2016$County)
 colnames(n_ood)[1] <-'County'
 n_ood$County <- as.character(n_ood$County)
+colnames(n_ood)[1] <- "County"
 ### using census dataframe to gather Geoid and using incident data to gather County Name##
 ### conversion of string characters did not work tried it with UTF-8 TO ASCII//TRANSLIT##
 opioid_incident_data_pa_gov <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Incident Data/data.csv")
@@ -140,6 +142,7 @@ cumulative_sci_weighted <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
 cumulative_sci_weighted <- as.matrix(cumulative_sci_weighted)
 diag(cumulative_sci_weighted) <- 0
 population <- census_data_frame$population
+### numerator of w_i_j: population_i*cumulative_sci_weighted_i
 for(i in 1:ncol(cumulative_sci_weighted)){
   cumulative_sci_weighted[,i] <- cumulative_sci_weighted[,i] * population[i]
 }
@@ -198,10 +201,12 @@ total_naloxone <- rbind(naloxone_2013, naloxone_2014, naloxone_2015, naloxone_20
 total_naloxone <- total_naloxone %>% filter(st_code=="PA") %>%  group_by(county_nm,state_and_county_fip) %>% 
   summarise(avg_total_rx = mean(total_rx, na.rm = TRUE))
 total_naloxone$state_and_county_fip <- as.numeric(total_naloxone$state_and_county_fip)
+df_ood_nvss_zipcode_level <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/aggregated_zip_data_2013_2107_nvss_zero_padded.csv')
 county <- unique(df_ood_nvss_zipcode_level$county)
 new_row <- data.frame(county_nm = "Cameron"  , state_and_county_fip = 42023, avg_total_rx = 0)
 total_naloxone <- rbind(total_naloxone,new_row)
 total_naloxone <- total_naloxone %>% arrange(state_and_county_fip)
+county_Wise_zip_codes <- df_ood_nvss_zipcode_level %>% group_by(county) %>%  count(county)
 total_naloxone <- cbind(total_naloxone,county_Wise_zip_codes)
 total_naloxone <- total_naloxone[,-c(4,5)]
 total_naloxone$avg_total_rx <- rescale(total_naloxone$avg_total_rx,to=c(0,1))
@@ -322,7 +327,13 @@ colnames(nvss_ood_county_wise_2013_2017)[7] <- "deaths_social_proximity"
 colnames(nvss_ood_county_wise_2013_2017)[8] <- "ODR"
 colnames(nvss_ood_county_wise_2013_2017)[9] <- "Naloxone_Available"
 
+write.csv(nvss_ood_county_wise_2013_2017,'nvss_ood_county_wise_2013_2017.csv')
+
 ##### nbr####
+# Ensure that GEOID is treated as a factor
+nvss_ood_county_wise_2013_2017$GEOID <- as.factor(nvss_ood_county_wise_2013_2017$GEOID)
+
+library(MASS)
 summary(nb1 <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity
                       + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
                         + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
@@ -330,7 +341,8 @@ summary(nb1 <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximi
                       +ODR+ Naloxone_Available, 
                       data = nvss_ood_county_wise_2013_2017,weights=population,
                       control = glm.control(maxit = 100)))
-
+library(stargazer)
+stargazer(nb1)
 # url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 # sites <- url %>% html_nodes('td') %>% html_text()
 # sites_1 <- sites[8977:9244]
@@ -418,15 +430,17 @@ library(ggplot2)
 library(tigris)
 options(tigris_year = "2017")
 penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
-penn_counties$GEOID <- as.character(penn_counties$GEOID)
+penn_counties$GEOID <- as.numeric(penn_counties$GEOID)
+phili_social_adjacency_data$GEOID <- as.numeric(phili_social_adjacency_data$GEOID)
 phili_counties_merged <- left_join(penn_counties, phili_social_adjacency_data, by = "GEOID")
 
 ggplot(data = phili_counties_merged) +
-  geom_sf(aes(fill = phili_counties_merged$social_adjacency_phili)) +
+  geom_sf(aes(fill = social_adjacency_phili)) +
   scale_fill_viridis_c(option = "viridis", trans="sqrt",direction = 1) +
   theme_minimal() +
   ggtitle("Social Adjacency in Pennsylvania Counties")
 
+alle_social_adjacency_data$GEOID <- as.numeric(alle_social_adjacency_data$GEOID)
 alle_counties_merged <- left_join(penn_counties, alle_social_adjacency_data, by = "GEOID")
 
 ggplot(data = alle_counties_merged) +
@@ -438,23 +452,23 @@ ggplot(data = alle_counties_merged) +
 
 ############## deaths per capita map #####
 
-library(sf)
-library(ggplot2)
-library(tigris)
-options(tigris_year = "2017")
-penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
-penn_counties$GEOID <- as.character(penn_counties$GEOID)
-penn_counties_merged <- left_join(penn_counties, social_adjacency, by = "GEOID")
-
-
-penn_counties_deaths <- penn_counties %>%
-  left_join(deaths_per_capita, by = c("NAME" = "county"))
-ggplot() +
-  geom_sf(data = penn_counties_deaths, aes(fill = deaths_per_capita), color = "black", size = 0.2) +
-  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.016), name = "Deaths per Capita") +
-  theme_minimal() +
-  ggtitle("Deaths per Capita by County in Pennsylvania") +
-  theme(plot.title = element_text(hjust = 0.5))
+# library(sf)
+# library(ggplot2)
+# library(tigris)
+# options(tigris_year = "2017")
+# penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
+# penn_counties$GEOID <- as.character(penn_counties$GEOID)
+# penn_counties_merged <- left_join(penn_counties, social_adjacency, by = "GEOID")
+# 
+# 
+# penn_counties_deaths <- penn_counties %>%
+#   left_join(deaths_per_capita, by = c("NAME" = "county"))
+# ggplot() +
+#   geom_sf(data = penn_counties_deaths, aes(fill = deaths_per_capita), color = "black", size = 0.2) +
+#   scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.016), name = "Deaths per Capita") +
+#   theme_minimal() +
+#   ggtitle("Deaths per Capita by County in Pennsylvania") +
+#   theme(plot.title = element_text(hjust = 0.5))
 ####################################################
 philadelphia <- df_1 %>% filter(user_loc=="42101")
 philadelphia_1 <- df_1 %>% filter(fr_loc=="42101")
@@ -549,30 +563,103 @@ ggplot() +
 
 ############ map for county deaths per capita############
 library(dplyr)
-deaths_per_capita <- df_ood_nvss_zipcode_level %>%
-  group_by(county) %>%
-  summarize(deaths_per_capita = sum(deaths) / sum(population), .groups = 'drop')
+deaths_per_capita <- nvss_ood_county_wise_2013_2017 %>% dplyr::select(GEOID,NAME,deaths,deaths_per_capita)
+deaths_per_capita$GEOID <- as.numeric(deaths_per_capita$GEOID)
 library(sf)
 library(ggplot2)
 library(tigris)
 options(tigris_year = "2017")
 penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
+penn_counties$GEOID <- as.numeric(penn_counties$GEOID)
 penn_counties_deaths <- penn_counties %>%
-  left_join(deaths_per_capita, by = c("NAME" = "county"))
+  left_join(deaths_per_capita, by = "GEOID")
 ggplot() +
   geom_sf(data = penn_counties_deaths, aes(fill = deaths_per_capita), color = "black", size = 0.2) +
-  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.016), name = "Deaths per Capita") +
+  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.008), name = "Deaths per Capita") +
   theme_minimal() +
   ggtitle("Deaths per Capita by County in Pennsylvania") +
   theme(plot.title = element_text(hjust = 0.5))
-
-common_scale <- scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.0016))
-
-
-deaths_per_capita_county <- ggplot(data = penn_counties_deaths) +
-  geom_sf(aes(fill = deaths_per_capita)) +
-  scale_fill_viridis_c(name = "deaths_per_capita", label = scales::comma) +
+###############################################################
+### getting the matrices for social proximity weights###
+library(readr)
+df_0 <- read_tsv ('C:/Users/kusha/Desktop/Data for Paper/SCI/county_county.tsv')
+county_geoid <- nvss_ood_county_wise_2013_2017$GEOID
+df_1 <- df_0 %>% dplyr::filter(user_loc %in% county_geoid & fr_loc %in% county_geoid)
+df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
+df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
+df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc)))) ##unique pairs + self loops
+df_for_matrix_weights <- df_1 %>% dplyr::select(c(user_loc,fr_loc,scaled_sci))
+df_for_matrix_weights
+nodes <- df_1 %>% distinct(fr_loc)
+k <- graph.data.frame(df_for_matrix_weights, directed=F, vertices=nodes)
+cumulative_sci_weighted <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
+cumulative_sci_weighted <- as.matrix(cumulative_sci_weighted)
+diag(cumulative_sci_weighted) <- 0
+population <- census_data_frame$population
+### numerator of w_i_j: population_i*cumulative_sci_weighted_i Calculate n_j * SCI_ij
+for(i in 1:ncol(cumulative_sci_weighted)){
+  cumulative_sci_weighted[,i] <- cumulative_sci_weighted[,i] * population[i]
+}
+### # # Calculate Σ_{k ≠ i} n_k * SCI_ik
+row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
+# # Calculate w_{ij} = n_j * SCI_ij / Σ_{k ≠ i} n_k * SCI_ik
+cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
+write.csv(cumulative_sci_weighted_test,'social_w_ij_county.csv')
+#####social proximity map####
+library(dplyr)
+deaths_social_proximity<- nvss_ood_county_wise_2013_2017 %>% dplyr::select(GEOID,NAME,deaths_social_proximity,deaths_per_capita)
+deaths_social_proximity$GEOID <- as.numeric(deaths_per_capita$GEOID)
+library(sf)
+library(ggplot2)
+library(tigris)
+options(tigris_year = "2017")
+penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
+penn_counties$GEOID <- as.numeric(penn_counties$GEOID)
+penn_counties_deaths <- penn_counties %>%
+  left_join(deaths_social_proximity, by = "GEOID")
+ggplot() +
+  geom_sf(data = penn_counties_deaths, aes(fill = deaths_social_proximity), color = "black", size = 0.2) +
+  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0,0.0014350880), name = "Deaths per Capita") +
   theme_minimal() +
-  ggtitle("Deaths per capita per county")
-
+  ggtitle("Deaths in Social Proximity by County in Pennsylvania") +
+  theme(plot.title = element_text(hjust = 0.5))
+##### spatial proximity map #######
+library(dplyr)
+deaths_spatial_proximity<- nvss_ood_county_wise_2013_2017 %>% dplyr::select(GEOID,NAME,deaths_spatial_porximity,deaths_per_capita)
+deaths_spatial_proximity$GEOID <- as.numeric(deaths_per_capita$GEOID)
+library(sf)
+library(ggplot2)
+library(tigris)
+options(tigris_year = "2017")
+penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
+penn_counties$GEOID <- as.numeric(penn_counties$GEOID)
+penn_counties_deaths <- penn_counties %>%
+  left_join(deaths_spatial_proximity, by = "GEOID")
+ggplot() +
+  geom_sf(data = penn_counties_deaths, aes(fill = deaths_spatial_proximity$deaths_spatial_porximity), color = "black", size = 0.2) +
+  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0,0.0014350880), name = "Deaths per Capita") +
+  theme_minimal() +
+  ggtitle("Deaths in Social Proximity by County in Pennsylvania") +
+  theme(plot.title = element_text(hjust = 0.5))
+#### social-spatial proximity #######
+nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017 %>% 
+  mutate(diff_social_spatial_proximity= 
+           abs((nvss_ood_county_wise_2013_2017$deaths_social_proximity- nvss_ood_county_wise_2013_2017$deaths_spatial_porximity)))
+library(dplyr)
+diff_social_spatial_proximity <- nvss_ood_county_wise_2013_2017 %>% dplyr::select(GEOID,NAME,diff_social_spatial_proximity,deaths_per_capita)
+diff_social_spatial_proximity$GEOID <- as.numeric(diff_social_spatial_proximity$GEOID)
+library(sf)
+library(ggplot2)
+library(tigris)
+options(tigris_year = "2017")
+penn_counties <- counties(state = "PA", cb = TRUE, resolution = "20m")
+penn_counties$GEOID <- as.numeric(penn_counties$GEOID)
+penn_counties_deaths <- penn_counties %>%
+  left_join(diff_social_spatial_proximity, by = "GEOID")
+ggplot() +
+  geom_sf(data = penn_counties_deaths, aes(fill = diff_social_spatial_proximity), color = "black", size = 0.2) +
+  scale_fill_viridis_c(option = "viridis", direction = 1, limits = c(-0.0005,0.0005)) +
+  theme_minimal() +
+  ggtitle("Diff in Social Proximity by County in Pennsylvania") +
+  theme(plot.title = element_text(hjust = 0.5))
 
