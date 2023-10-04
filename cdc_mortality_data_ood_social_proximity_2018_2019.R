@@ -225,8 +225,49 @@ v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
   cumulative_sci_weighted_test[,i] <- cumulative_sci_weighted_test[,i] * v[i]
 }
-sci_proximity_county_2013_2017 <- rowSums(cumulative_sci_weighted_test)
+s_minus_i <- rowSums(cumulative_sci_weighted_test)
 ################### spatial proximity ##########
+#### physical proximity ###
+### we first create the spatial df that contains GEOID, LAT AND LNG
+spatial_df <- cdc_mort_data_fips_wise_death_certificates %>% select(GEOID,Longitude,Latitude)
+### dropping the state name###
+spatial_df <- spatial_df[,-1]
+### ordering it so the geoid are alligned from 01001
+spatial_df <- spatial_df[order(spatial_df$GEOID),]
+###calculating the distance between location
+distance_matrix <-  geodist(spatial_df, measure = 'geodesic') / 1000 # converting it to km
+### adding 1 so the distances are not very small and still computable ### to the distance 
+distance_matrix <- 1 + distance_matrix
+### inverse distance
+distance_matrix <- distance_matrix**(-1)
+### to insure the distance with itself is zero
+diag(distance_matrix) <- 0
+### providing the matrix row name and column name
+colnames(distance_matrix) <- spatial_df$GEOID
+rownames(distance_matrix) <- spatial_df$GEOID
+### ordering the cdc_mort_data_fips for population so each geoid in the spatial df
+###has respecitve population associated with it##
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[order(cdc_mort_data_fips_wise_death_certificates$GEOID),]
+### y stores the deaths per capita ###
+y <- cdc_mort_data_fips_wise_death_certificates$deaths_per_capita
+### a_i_j distance matrix and again ensuring that digonals are zero##
+a_i_j <- data.frame(distance_matrix)
+diag(a_i_j) <- 0
+a_i_j <- as.matrix(a_i_j)
+# Normalize a_i_j
+normalised_scale <- rowSums(a_i_j)
+a_i_j <- a_i_j / normalised_scale
+
+# Perform matrix multiplication for deaths in spatial proximity ###
+d_minus_i <- a_i_j %*% y
+
+#### now adding s_minus_i and d_minus_i in the cdc_mort_data_fips_wise_death_certificates#### 
+cdc_mort_data_fips_wise_death_certificates <- cbind(cdc_mort_data_fips_wise_death_certificates,s_minus_i)
+colnames(cdc_mort_data_fips_wise_death_certificates)[8] <- "deaths_in_social_proximity"
+cdc_mort_data_fips_wise_death_certificates <- cbind(cdc_mort_data_fips_wise_death_certificates,d_minus_i)
+colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_proximity"
+
+
 
 
 
