@@ -13,7 +13,7 @@ library(scales)
 library(tidycensus)
 library(tigris)### for lat and lng
 library(sf)### for lat and lng 
-
+library(readxl)
 census_api_key("e6460566746931aed6c241abe8a6e2425aa9c699", install = TRUE, overwrite = TRUE)
 
 ### census data ####
@@ -266,10 +266,24 @@ cdc_mort_data_fips_wise_death_certificates <- cbind(cdc_mort_data_fips_wise_deat
 colnames(cdc_mort_data_fips_wise_death_certificates)[8] <- "deaths_in_social_proximity"
 cdc_mort_data_fips_wise_death_certificates <- cbind(cdc_mort_data_fips_wise_death_certificates,d_minus_i)
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_proximity"
-
-
-
-
+#### SDOH countywise##########
+### VARIABLES TO EXTRACT: ACS_PCT_UNEMPLOY,ACS_PCT_PERSON_INC_BELOW99,ACS _PCT_HU_NO _VEH 
+##### ACS_PCT_LT_HS POS_DIST_ALC ACS_PCT_OTHER_INS
+sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
+health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% GEOID$GEOID )
+health_determinant_covariates <- health_determinant %>% dplyr::select(COUNTYFIPS,ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
+                                                                      ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
+                                                                      ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
+health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
+health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
+health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
+health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
+health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
+health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
+##### adding these covariates in cdc_mort_data_fips_wise_death_certificates###
+colnames(health_determinant_covariates)[1] <- "GEOID"
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
+                                                        health_determinant_covariates,by="GEOID")
 
 
 
