@@ -242,5 +242,27 @@ total_naloxone <- total_naloxone[order(total_naloxone$GEOID),]
 #### adding naloxone to the cdc_mort_data_fips_wise_death_certificates### 
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                        total_naloxone,by="GEOID")
-###### 
+###### opr ######
+opioids_2018<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2018.sas7bdat")
+opioids_2019 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2019.sas7bdat")
+total_opioids <- rbind(opioids_2018,opioids_2019)
+total_opioids <- total_opioids %>% filter(state_fip_county_fip %in% 
+                                            cdc_mort_data_fips_wise_death_certificates$GEOID )
+total_opioids <- total_opioids %>% group_by(county_nm, state_fip_county_fip) %>% 
+  summarise( cumulative_total_dose=sum(total_dose))
+total_opioids$cumulative_total_dose <- rescale(total_opioids$cumulative_total_dose,to=c(0,1))
 
+### finding the missing counties ####
+missing_opioids_counties <- setdiff(cdc_mort_data_fips_wise_death_certificates$GEOID,
+                                    total_opioids$state_fip_county_fip)
+missing_opioids_county_data <- data.frame(GEOID = missing_opioids_counties,cumulative_total_dose= 0)
+total_opioids <- total_opioids[,-1]
+colnames(total_opioids)[1] <- "GEOID"
+total_opioids <- rbind(total_opioids,missing_opioids_county_data)
+total_opioids <- total_opioids[order(total_opioids$GEOID),]
+
+### adding odr ### 
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
+                                                        total_opioids,by="GEOID")
+
+##### checking the model ####
