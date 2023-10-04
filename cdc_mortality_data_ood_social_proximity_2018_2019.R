@@ -11,6 +11,9 @@ library(geodist)
 library(haven)
 library(scales)
 library(tidycensus)
+library(tigris)### for lat and lng
+library(sf)### for lat and lng 
+
 census_api_key("e6460566746931aed6c241abe8a6e2425aa9c699", install = TRUE, overwrite = TRUE)
 
 ### census data ####
@@ -89,21 +92,35 @@ cdc_2018_2019_mort_data_east_america <- cdc_combined_mort_data_2018_2019 %>% fil
 
 #### getting fips related information for the eastern states using tidycensus ###
 # Get FIPS codes for all states
-all_fips <- fips_codes("state")
+eastern_states <- c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
+                    "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
+                    "TN", "KY", "SC", "GA", "AL", "MS", "FL")
+Soc.2019 <- get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
+                    state=eastern_states, survey="acs5", geometry = FALSE)
 
-# Specify the states you are interested in
-interested_states <- c("AL", "CT", "DC", "DE", "FL", "GA", "IL", "IN", "KY", "MA", 
-                       "MD", "ME", "MI", "MS", "NC", "NH", "NJ", "NY", "OH", "PA", 
-                       "RI", "SC", "TN", "VA", "VT", "WI", "WV")
+Soc.2019<- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
-# Filter FIPS codes for the interested states
-state_fips <- all_fips[all_fips$abbr %in% interested_states, ]
+fips_code <- tidycensus::fips_codes
+fips_code <- fips_code %>% filter(state %in%  c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
+                                             "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
+                                             "TN", "KY", "SC", "GA", "AL", "MS", "FL"))
+fips_code$GEOID <- paste0(fips_code$state_code, fips_code$county_code)
 
-# Print the FIPS codes
-print(state_fips[, c("name", "fips", "abbr")])
+Soc.2019 <- merge(fips_code,Soc.2019, by="GEOID")
+### extracting state code and fips code ###
+st_code_st_abb <- Soc.2019 %>% select(state,state_code)
+st_code_st_abb <- unique(st_code_st_abb)
+colnames(st_code_st_abb)[1] <- "stposto"
+### merging the state_fips_code with cdc_2018_2019_to_get_5_digits_fips_code###
 
-
-
+cdc_2018_2019_mort_data_east_america <- left_join(cdc_2018_2019_mort_data_east_america,st_code_st_abb,
+                                              by = "stposto")
+cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>% 
+  mutate(FullFIPS = paste0(state_code, cntfipso))
+### reordering the columns###
+cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>%
+  select(1, 93, 94, 2:92)
+colnames(cdc_2018_2019_mort_data_east_america)[3] <- "GEOID"
 
 # total_County_available <- cdc_2018_2019_mort_data_east_america %>% group_by(cntfipso) %>% summarise(total_count = n())
 ### fitering the T CODES FOR OPIOID RELATED DEATHS PRIMARY USE CASES THROUGH
@@ -131,37 +148,64 @@ cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>%
       RAXIS20 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409')
   )
 ### to get the count of deaths in each county ###
-cdc_mort_data_fips_wise_death_certificates <-cdc_2018_2019_mort_data_east_america  %>% group_by(stposto,cntfipso) %>% summarise(total_count = n())
+cdc_mort_data_fips_wise_death_certificates <- cdc_2018_2019_mort_data_east_america  %>% group_by(stnchsxo,GEOID) %>% summarise(total_count = n())
 ## the filtered data show OOD counts for 62 counties we have missing fips data for 5 counties ####
-## first padding the 42 infront###
-cdc_mort_data_fips_wise_death_certificates$cntfipso <- paste(42, cdc_mort_data_fips_wise_death_certificates$cntfipso)
-cdc_mort_data_fips_wise_death_certificates$cntfipso <-gsub(" ", "", cdc_mort_data_fips_wise_death_certificates$cntfipso)
-pa_counties <- counties(state = "PA", cb = TRUE, year = 2020) %>% 
-  dplyr::select(GEOID, NAME)
-missing_counties <- setdiff(pa_counties$GEOID,cdc_mort_data_fips_wise_death_certificates$cntfipso)
-#### missing counties contain 42067-Juniata, 42005-Armstrong 
-#### 42023-Cameron, 42053-Forst, 42105-Potter
-### two options pad them with zero or use the previous overdose deaths information from pennsylvania stastics department##
-cntfipso <- c('42067','42005', '42023','42053', '42105')
-total_count <- c(0,0,0,0,0)
-missing_county_df <- data.frame(cntfipso,total_count)
-## adding the missing county data in the cdc mort data fips certificates data frame ###
-cdc_mort_data_fips_wise_death_certificates <- rbind(cdc_mort_data_fips_wise_death_certificates,missing_county_df)
-#### calculating death per capita in each county ###
-cdc_mort_data_fips_wise_death_certificates$cntfipso <- as.numeric(cdc_mort_data_fips_wise_death_certificates$cntfipso)
+# Find GEOIDs that are in soc.2019 but not in cdc_mort_data_fips_wise_death_certificates
+
+# Now try the setdiff() function again
+missing_GEOIDs <- setdiff(Soc.2019$GEOID, cdc_mort_data_fips_wise_death_certificates$GEOID)
+
+# Create a new data frame with the missing GEOIDs and a total_count of 0
+missing_data <- data.frame(GEOID = missing_GEOIDs, total_count = 0)
+missing_data <- missing_data %>%
+  left_join(select(Soc.2019, GEOID, state), by = "GEOID")
+
+colnames(missing_data)[3] <- "stnchsxo"
+missing_data <- missing_data[,c(3,1,2)]
+# Add the missing data to the original data frame
+cdc_mort_data_fips_wise_death_certificates <- bind_rows(cdc_mort_data_fips_wise_death_certificates, 
+                                                        missing_data)
+
+### adding the population to the cdc_mort_data_fips_wise_death_certificates #####
+geoid_population <- Soc.2019 %>% select(GEOID,estimate)
+### using the left join to merge it ###
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,geoid_population, by="GEOID")
+colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "population"
+### getting the lat and lng for counties###
+### getting the shapefile for US counties using SF package####
+counties <- counties(cb = TRUE, class = "sf")
+east_american_fips_vector <- cdc_mort_data_fips_wise_death_certificates[order(cdc_mort_data_fips_wise_death_certificates$GEOID),]
+east_american_fips_vector <- east_american_fips_vector$GEOID
+### filtering the east_american_fips_Vector from counties###
+selected_counties <- counties[counties$GEOID %in% east_american_fips_vector, ]
+#### getting the centroids ###
+centroids <- st_centroid(selected_counties)
+centroids <- centroids[order(centroids$GEOID ),]
+coords <- st_coordinates(centroids)
+### getting the lat lng ###
+geoid_lat_lng<- data.frame(
+  GEOID = east_american_fips_vector,
+  Longitude = coords[,1],
+  Latitude = coords[,2]
+)
+### adding lat and lng information to the county information ####
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
+                                                        geoid_lat_lng, by="GEOID")
+### calculating deaths per capita using mutate function #####
 cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>% 
-  arrange(cdc_mort_data_fips_wise_death_certificates$cntfipso)
-cdc_mort_data_fips_wise_death_certificates$population <- census_data_frame$population
-cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>% 
-  mutate(deaths_per_capita= total_count/population)
-## changing colnames of fipso to fr_loc to filter the data ####
-cdc_mort_data_fips_wise_death_certificates$cntfipso <- as.character(cdc_mort_data_fips_wise_death_certificates$cntfipso)
-colnames(cdc_mort_data_fips_wise_death_certificates)[1] <- "fr_loc"
-############ social proximity #########
+  mutate(deaths_per_capita=total_count/population)
+
+#### calculating deaths social proximity #####
+### first creating a data frame that only contains geoid,population and deaths_per_capita###
+social_df <- cdc_mort_data_fips_wise_death_certificates[,c(2,4,7)]
+colnames(social_df )[1] <- "fr_loc"
+colnames(social_df)[3] <- "deaths_per_capita"
+social_df <- social_df[order(social_df$fr_loc),]
+#### calculating sci_proximity####
 df_0 <- read_tsv ('C:/Users/kusha/Desktop/Data for Paper/SCI/county_county.tsv')
-df_1 <- df_0 %>% dplyr::filter(user_loc %in% cdc_mort_data_fips_wise_death_certificates$fr_loc & fr_loc %in% cdc_mort_data_fips_wise_death_certificates$fr_loc)
-df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
-df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
+df_1 <- df_0 %>% dplyr::filter(user_loc %in% social_df$fr_loc & fr_loc %in% social_df$fr_loc)
+#df_1$user_loc <- as.numeric(as.character(df_1$user_loc))
+#df_1$fr_loc <- as.numeric(as.character(df_1$fr_loc))
 df_1 <- df_1 %>% filter(!duplicated(paste0(pmax(user_loc, fr_loc), pmin(user_loc, fr_loc)))) ##unique pairs + self loops
 df_for_matrix_weights <- df_1 %>% dplyr::select(c(user_loc,fr_loc,scaled_sci))
 df_for_matrix_weights
@@ -170,14 +214,21 @@ k <- graph.data.frame(df_for_matrix_weights, directed=F, vertices=nodes)
 cumulative_sci_weighted <- as_adjacency_matrix(k,attr="scaled_sci",sparse=T)
 cumulative_sci_weighted <- as.matrix(cumulative_sci_weighted)
 diag(cumulative_sci_weighted) <- 0
-population <- census_data_frame$population
+population <- social_df$population
+### numerator of w_i_j: population_i*cumulative_sci_weighted_i
 for(i in 1:ncol(cumulative_sci_weighted)){
   cumulative_sci_weighted[,i] <- cumulative_sci_weighted[,i] * population[i]
 }
 row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
 cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
-v <- aggregated_ood_per_capita_events_in_each_county$deaths_per_capita
+v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
   cumulative_sci_weighted_test[,i] <- cumulative_sci_weighted_test[,i] * v[i]
 }
 sci_proximity_county_2013_2017 <- rowSums(cumulative_sci_weighted_test)
+################### spatial proximity ##########
+
+
+
+
+
