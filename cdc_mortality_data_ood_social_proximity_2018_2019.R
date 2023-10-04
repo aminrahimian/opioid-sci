@@ -16,71 +16,7 @@ library(sf)### for lat and lng
 library(readxl)
 census_api_key("e6460566746931aed6c241abe8a6e2425aa9c699", install = TRUE, overwrite = TRUE)
 
-### census data ####
-# race_vars <- c(
-#   White = "B03002_003",
-#   Black = "B03002_004",
-#   Native = "B03002_005",
-#   Asian = "B03002_006",
-#   HIPI = "B03002_007",
-#   Hispanic = "B03002_012"
-# )
-# 
-# pa_race <- get_acs(
-#   geography = "county",
-#   state = "PA",
-#   variables = race_vars,
-#   summary_var = "B03002_001",
-#   year = 2019
-# ) 
-# 
-# pa_race_percent <- pa_race %>% mutate(percent = 100 * (estimate / summary_est)) 
-# pa_race_percent <- pa_race_percent %>% dplyr::select(NAME, variable, percent)
-# pa_race_percent <- pa_race_percent %>% mutate(NAME=str_replace_all(pa_race_percent$NAME,"County, Pennsylvania",""))
-# 
-# 
-# asian <- pa_race_percent %>% dplyr::filter(variable=="Asian")
-# asian <- asian %>% mutate(perecent=percent/100)
-# asian <- asian[,-3]
-# 
-# black <- pa_race_percent %>% dplyr::filter(variable=="Black")
-# black <- black %>% mutate(perecent=percent/100)
-# black <- black[,-3]
-# 
-# hipi <- pa_race_percent %>% dplyr::filter(variable=="HIPI")
-# hipi <- hipi %>% mutate(perecent=percent/100)
-# hipi <- hipi[,-3]
-# 
-# hispanic <- pa_race_percent %>% dplyr::filter(variable=="Hispanic")
-# hispanic <- hispanic %>%  mutate(perecent=percent/100)
-# hispanic <- hispanic[,-3]
-# 
-# native <-pa_race_percent %>% dplyr::filter(variable=="Native")
-# native <- native %>% mutate(perecent=percent/100)
-# native <- native[,-3]
-# 
-# white <- pa_race_percent %>% dplyr::filter(variable=="White")
-# white <- white %>% mutate(perecent=percent/100)
-# white <- white[,-3]
-# 
-# pa_hh_income <- get_acs(
-#   geography = "county",
-#   table = "B19001",
-#   state = "PA",
-#   year = 2019
-# )
-# 
-# pa_hh_income <- pa_hh_income %>% dplyr::filter(pa_hh_income$variable == "B19001_001")
-# colnames(pa_hh_income)[3] <- "hh_income"
-# pa_hh_income <- pa_hh_income %>% mutate(NAME=str_replace_all(pa_hh_income$NAME,"County, Pennsylvania",""))
-# pa_hh_income <- pa_hh_income %>% dplyr::select(c(GEOID,NAME,estimate))
-# 
-# Soc.2019 <- get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),state="PA", survey="acs5") %>% mutate(Year = "2017")
-# Soc.2019 <- Soc.2019 %>% mutate(NAME=str_replace_all(Soc.2017$NAME,"County, Pennsylvania",""))
-# Soc.2019 <- Soc.2019[,-c(3,5,6)]
-# colnames(Soc.2019)[3] <- "population"
-# Soc.2019
-# census_data_frame <- merge(Soc.2019,pa_hh_income,by="NAME")
+
 #### mortality data ###########
 cdc_2018_mort_data <- read_sas('C:/Users/kusha/Desktop/Data for Paper/CDC Mortality Data/mort2018_drugoverdose.sas7bdat')
 cdc_2019_mort_data <- read_sas('C:/Users/kusha/Desktop/Data for Paper/CDC Mortality Data/mort2019_drugoverdose.sas7bdat')
@@ -270,7 +206,7 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_pr
 ### VARIABLES TO EXTRACT: ACS_PCT_UNEMPLOY,ACS_PCT_PERSON_INC_BELOW99,ACS _PCT_HU_NO _VEH 
 ##### ACS_PCT_LT_HS POS_DIST_ALC ACS_PCT_OTHER_INS
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
-health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% GEOID$GEOID )
+health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
 health_determinant_covariates <- health_determinant %>% dplyr::select(COUNTYFIPS,ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
                                                                       ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
                                                                       ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
@@ -284,6 +220,27 @@ health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_co
 colnames(health_determinant_covariates)[1] <- "GEOID"
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         health_determinant_covariates,by="GEOID")
+#### Clinical covariates###
+#### naloxone ####
+naloxone_2018 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2018.sas7bdat")
+naloxone_2019 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2019.sas7bdat")
+total_naloxone <- rbind(naloxone_2018, naloxone_2019)
+total_naloxone <- total_naloxone %>% filter(state_and_county_fip  %in% cdc_mort_data_fips_wise_death_certificates$GEOID )
+total_naloxone <- total_naloxone %>% group_by(county_nm,state_and_county_fip) %>% 
+  summarise(avg_total_rx = mean(total_rx, na.rm = TRUE))
+### missing counties ###
+total_naloxone_missing_counties <- setdiff(cdc_mort_data_fips_wise_death_certificates$GEOID,
+                                           total_naloxone$state_and_county_fip)
+missing_naloxone_county_data <- data.frame(GEOID = total_naloxone_missing_counties, avg_total_rx = 0)
 
-
+### total naloxone subsetting geoid avg_total_rx ####
+total_naloxone <- total_naloxone[,-1]
+colnames(total_naloxone)[1] <- "GEOID"
+total_naloxone <- rbind(total_naloxone,missing_naloxone_county_data)
+total_naloxone$avg_total_rx <- rescale(total_naloxone$avg_total_rx,to=c(0,1))
+total_naloxone <- total_naloxone[order(total_naloxone$GEOID),]
+#### adding naloxone to the cdc_mort_data_fips_wise_death_certificates### 
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
+                                                       total_naloxone,by="GEOID")
+###### 
 
