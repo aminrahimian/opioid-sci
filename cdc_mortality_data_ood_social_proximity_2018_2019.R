@@ -14,6 +14,9 @@ library(tidycensus)
 library(tigris)### for lat and lng
 library(sf)### for lat and lng 
 library(readxl)
+library(spdep)
+library(lmtest)
+library(sandwich)
 census_api_key("e6460566746931aed6c241abe8a6e2425aa9c699", install = TRUE, overwrite = TRUE)
 
 
@@ -22,7 +25,7 @@ cdc_2018_mort_data <- read_sas('C:/Users/kusha/Desktop/Data for Paper/CDC Mortal
 cdc_2019_mort_data <- read_sas('C:/Users/kusha/Desktop/Data for Paper/CDC Mortality Data/mort2019_drugoverdose.sas7bdat')
 cdc_combined_mort_data_2018_2019 <- rbind(cdc_2018_mort_data,cdc_2019_mort_data)
 
-cdc_2018_2019_mort_data_east_america <- cdc_combined_mort_data_2018_2019 %>% filter(stposto==c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
+cdc_2018_2019_mort_data_east_america <- cdc_combined_mort_data_2018_2019 %>% filter(stposto %in% c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
                                                                                      "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
                                                                                      "TN", "KY", "SC", "GA", "AL", "MS", "FL"))
 
@@ -44,7 +47,7 @@ fips_code$GEOID <- paste0(fips_code$state_code, fips_code$county_code)
 
 Soc.2019 <- merge(fips_code,Soc.2019, by="GEOID")
 ### extracting state code and fips code ###
-st_code_st_abb <- Soc.2019 %>% select(state,state_code)
+st_code_st_abb <- Soc.2019 %>% dplyr::select(state,state_code)
 st_code_st_abb <- unique(st_code_st_abb)
 colnames(st_code_st_abb)[1] <- "stposto"
 ### merging the state_fips_code with cdc_2018_2019_to_get_5_digits_fips_code###
@@ -55,36 +58,41 @@ cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>%
   mutate(FullFIPS = paste0(state_code, cntfipso))
 ### reordering the columns###
 cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>%
-  select(1, 93, 94, 2:92)
+  dplyr::select(1, 93, 94, 2:92)
 colnames(cdc_2018_2019_mort_data_east_america)[3] <- "GEOID"
+
+cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>% 
+  filter(icd10_3 %in% c("X40", "X41", "X42", "X43", "X44", "X60", "X61", "X62",
+                        "X63", "X64", "X85", "Y10", "Y11", "Y12", "Y13", "Y14"))
 
 # total_County_available <- cdc_2018_2019_mort_data_east_america %>% group_by(cntfipso) %>% summarise(total_count = n())
 ### fitering the T CODES FOR OPIOID RELATED DEATHS PRIMARY USE CASES THROUGH
 #ICD CODES X40-X44 and R-axis T400-T404, T406, T409########
 cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>% 
   filter(
-    RAXIS2 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS3 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS4 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS5 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS6 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS7 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS8 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS9 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS10 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS11 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS12 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS13 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS14 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS15 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS16 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS17 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS18 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS19 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409') |
-      RAXIS20 %in% c('T400','T401', 'T402', 'T403', 'T404','T406', 'T409')
+    RAXIS2 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS3 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS4 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS5 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS6 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS7 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS8 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS9 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS10 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS11 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS12 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS13 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS14 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS15 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS16 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS17 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS18 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS19 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
+      RAXIS20 %in% c('T400','T401', 'T402', 'T403', 'T404','T406')
   )
 ### to get the count of deaths in each county ###
-cdc_mort_data_fips_wise_death_certificates <- cdc_2018_2019_mort_data_east_america  %>% group_by(stnchsxo,GEOID) %>% summarise(total_count = n())
+cdc_mort_data_fips_wise_death_certificates <- cdc_2018_2019_mort_data_east_america  %>% 
+  group_by(stnchsxo,GEOID) %>% summarise(total_count = n())
 ## the filtered data show OOD counts for 62 counties we have missing fips data for 5 counties ####
 # Find GEOIDs that are in soc.2019 but not in cdc_mort_data_fips_wise_death_certificates
 
@@ -94,7 +102,7 @@ missing_GEOIDs <- setdiff(Soc.2019$GEOID, cdc_mort_data_fips_wise_death_certific
 # Create a new data frame with the missing GEOIDs and a total_count of 0
 missing_data <- data.frame(GEOID = missing_GEOIDs, total_count = 0)
 missing_data <- missing_data %>%
-  left_join(select(Soc.2019, GEOID, state), by = "GEOID")
+  left_join(dplyr::select(Soc.2019, GEOID, state), by = "GEOID")
 
 colnames(missing_data)[3] <- "stnchsxo"
 missing_data <- missing_data[,c(3,1,2)]
@@ -103,7 +111,7 @@ cdc_mort_data_fips_wise_death_certificates <- bind_rows(cdc_mort_data_fips_wise_
                                                         missing_data)
 
 ### adding the population to the cdc_mort_data_fips_wise_death_certificates #####
-geoid_population <- Soc.2019 %>% select(GEOID,estimate)
+geoid_population <- Soc.2019 %>% dplyr::select(GEOID,estimate)
 ### using the left join to merge it ###
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,geoid_population, by="GEOID")
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "population"
@@ -157,21 +165,26 @@ for(i in 1:ncol(cumulative_sci_weighted)){
 }
 row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
 cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
+####storing the matrix weight spatial format ###
+w_i_j <- as.matrix(cumulative_sci_weighted_test)
+lw_1 <- mat2listw(cumulative_sci_weighted_test)
+#### further calculating s_{-i}
 v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
   cumulative_sci_weighted_test[,i] <- cumulative_sci_weighted_test[,i] * v[i]
 }
 s_minus_i <- rowSums(cumulative_sci_weighted_test)
+
 ################### spatial proximity ##########
 #### physical proximity ###
 ### we first create the spatial df that contains GEOID, LAT AND LNG
-spatial_df <- cdc_mort_data_fips_wise_death_certificates %>% select(GEOID,Longitude,Latitude)
+spatial_df <- cdc_mort_data_fips_wise_death_certificates %>% dplyr::select(GEOID,Longitude,Latitude)
 ### dropping the state name###
 spatial_df <- spatial_df[,-1]
 ### ordering it so the geoid are alligned from 01001
 spatial_df <- spatial_df[order(spatial_df$GEOID),]
 ###calculating the distance between location
-distance_matrix <-  geodist(spatial_df, measure = 'geodesic') / 1000 # converting it to km
+distance_matrix <- geodist::geodist(spatial_df,measure="geodesic")/ 1000 # converting it to km
 ### adding 1 so the distances are not very small and still computable ### to the distance 
 distance_matrix <- 1 + distance_matrix
 ### inverse distance
@@ -193,6 +206,9 @@ a_i_j <- as.matrix(a_i_j)
 # Normalize a_i_j
 normalised_scale <- rowSums(a_i_j)
 a_i_j <- a_i_j / normalised_scale
+####storing the distance matrix weight spatial format ###
+lw_2 <- mat2listw(a_i_j)
+
 
 # Perform matrix multiplication for deaths in spatial proximity ###
 d_minus_i <- a_i_j %*% y
@@ -237,11 +253,15 @@ missing_naloxone_county_data <- data.frame(GEOID = total_naloxone_missing_counti
 total_naloxone <- total_naloxone[,-1]
 colnames(total_naloxone)[1] <- "GEOID"
 total_naloxone <- rbind(total_naloxone,missing_naloxone_county_data)
-total_naloxone$avg_total_rx <- rescale(total_naloxone$avg_total_rx,to=c(0,1))
+#total_naloxone$avg_total_rx <- rescale(total_naloxone$avg_total_rx,to=c(0,1))
 total_naloxone <- total_naloxone[order(total_naloxone$GEOID),]
 #### adding naloxone to the cdc_mort_data_fips_wise_death_certificates### 
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                        total_naloxone,by="GEOID")
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>%
+  mutate(avg_total_rx=avg_total_rx/population)
+cdc_mort_data_fips_wise_death_certificates$avg_total_rx <- rescale(cdc_mort_data_fips_wise_death_certificates$avg_total_rx,to=c(0,1))
+
 ###### opr ######
 opioids_2018<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2018.sas7bdat")
 opioids_2019 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2019.sas7bdat")
@@ -250,7 +270,7 @@ total_opioids <- total_opioids %>% filter(state_fip_county_fip %in%
                                             cdc_mort_data_fips_wise_death_certificates$GEOID )
 total_opioids <- total_opioids %>% group_by(county_nm, state_fip_county_fip) %>% 
   summarise( cumulative_total_dose=sum(total_dose))
-total_opioids$cumulative_total_dose <- rescale(total_opioids$cumulative_total_dose,to=c(0,1))
+#total_opioids$cumulative_total_dose <- rescale(total_opioids$cumulative_total_dose,to=c(0,1))
 
 ### finding the missing counties ####
 missing_opioids_counties <- setdiff(cdc_mort_data_fips_wise_death_certificates$GEOID,
@@ -264,5 +284,151 @@ total_opioids <- total_opioids[order(total_opioids$GEOID),]
 ### adding odr ### 
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         total_opioids,by="GEOID")
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>%
+  mutate(cumulative_total_dose=cumulative_total_dose/population)
+cdc_mort_data_fips_wise_death_certificates$cumulative_total_dose <- rescale(cdc_mort_data_fips_wise_death_certificates$cumulative_total_dose,
+                                                                            cumulative_total_dose=0)
+##### beupromorphine ####
 
-##### checking the model ####
+
+
+
+
+
+
+##### renaming naloxone and opiods columns###
+colnames(cdc_mort_data_fips_wise_death_certificates)[16] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[17] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[3] <- "deaths"
+colnames(cdc_mort_data_fips_wise_death_certificates)[8] <- "deaths_social_porximity"
+colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_spatial_proximity"
+
+#### scale population####
+cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_fips_wise_death_certificates$population, 
+                                                                 to=c(0,1))
+
+#### nbr ###
+library(MASS)
+summary(nb1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity
+                      + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
+                        + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                      + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
+                      +ODR+ Naloxone_Available, 
+                      data = cdc_mort_data_fips_wise_death_certificates,weights=population,
+                      control = glm.control(maxit = 100)))
+
+# Display coefficients and clustered standard errors
+nb_1_clustered_std_error <- coeftest(nb1,vcov = vcovCL,
+                                     cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+
+library(stargazer)
+stargazer(nb1, nb_1_clustered_std_error, type = "latex", 
+          title = "Negative Binomial Model with and without Clustered SE")
+
+
+
+
+#### lm 1#### 
+summary(lm_model <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity
+                       + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+                       + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+                       + ODR + Naloxone_Available, 
+                       data = cdc_mort_data_fips_wise_death_certificates, 
+                       weights = population))
+
+library(sandwich)
+library(lmtest)
+lm_clustered_error <- coeftest(lm_model, vcov = vcovCL, 
+                               cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+
+stargazer(lm_model, lm_clustered_error, type = "latex", 
+          title = "Linear Regression with and without Clustered SE")
+
+
+
+################# spatial reg #####
+library(spdep)
+library(spatialreg)
+summary(network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
+                                                deaths_spatial_proximity
+           + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+           + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+           + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+           + ODR + Naloxone_Available+population,
+           data=cdc_mort_data_fips_wise_death_certificates,
+           listw = lw_1,
+           zero.policy = TRUE,
+           na.action = na.omit,
+           tol.solve = 1*exp(-200)
+))
+
+# Then, fit a spatial error model on the residuals
+# Convert the w_i_j matrix to a vector
+w_i_j_vector <- as.vector(w_i_j)
+
+
+# Create a dataframe
+df_w_i_j <- data.frame(w_i_j_values = w_i_j_vector)
+
+### 
+# Compute the 3rd Quartile from the w_i_j matrix values
+threshold <- 5.868832e-05
+
+# Convert the weighted matrix to a binary matrix based on the threshold
+binary_matrix <- w_i_j
+binary_matrix[w_i_j > threshold] <- 1
+binary_matrix[w_i_j <= threshold] <- 0
+lw_1.b <- mat2listw(binary_matrix )
+
+
+
+
+summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
+                                                deaths_spatial_proximity
+                                              + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+                                              + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                                              + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+                                              + ODR + Naloxone_Available,
+                                              data=cdc_mort_data_fips_wise_death_certificates,
+                                              listw = lw_2,
+                                              weights = cdc_mort_data_fips_wise_death_certificates$population,
+                                              zero.policy = TRUE,
+                                              na.action = na.omit,
+                                              tol.solve = 1e-40
+))
+
+
+
+
+
+#######################
+# Load your dataset
+# You should replace the below line with the actual loading of your dataset
+# cdc_mort_data_fips_wise_death_certificates <- read.csv("path_to_your_data.csv")
+
+# Extract the variables for correlation plot
+selected_vars <- cdc_mort_data_fips_wise_death_certificates[, c("deaths_per_capita", 
+                                                                "deaths_social_porximity", 
+                                                                "deaths_spatial_proximity", 
+                                                                "ACS_PCT_UNEMPLOY", 
+                                                                "ACS_PCT_LT_HS", 
+                                                                "ACS_PCT_PERSON_INC_BELOW99", 
+                                                                "ACS_PCT_HU_NO_VEH", 
+                                                                "POS_MEAN_DIST_ALC", 
+                                                                "ACS_PCT_OTHER_INS", 
+                                                                "ODR", 
+                                                                "Naloxone_Available")]
+
+library(PerformanceAnalytics)
+
+chart.Correlation(selected_vars, histogram = TRUE, method = "pearson")
+
+
+
+
+write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_easter_united_states_2018_2019.csv')
+
+
+
+
