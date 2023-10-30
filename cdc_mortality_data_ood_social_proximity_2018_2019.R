@@ -287,8 +287,31 @@ cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_
 cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>%
   mutate(cumulative_total_dose=cumulative_total_dose/population)
 cdc_mort_data_fips_wise_death_certificates$cumulative_total_dose <- rescale(cdc_mort_data_fips_wise_death_certificates$cumulative_total_dose,
-                                                                            cumulative_total_dose=0)
+                                                                            cumulative_total_dose=c(0,1))
 ##### beupromorphine ####
+beupromorphine_2018 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2018.sas7bdat")
+beupromorphine_2019 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2019.sas7bdat")
+total_beupromorphine <- rbind(beupromorphine_2018,beupromorphine_2019)
+total_beupromorphine <- total_beupromorphine %>% filter(state_fip_county_fip %in% 
+                                            cdc_mort_data_fips_wise_death_certificates$GEOID )
+total_beupromorphine  <- total_beupromorphine  %>% group_by(county_nm, state_fip_county_fip) %>% 
+  summarise( cumulative_total_beupromorphine=mean(total_rx))
+### finding the counties with zero beupromorphine###
+zero_beupromorphine_counties <- setdiff(cdc_mort_data_fips_wise_death_certificates$GEOID,
+                                    total_beupromorphine$state_fip_county_fip)
+zero_beupromorphine_counties_data <- data.frame(GEOID = zero_beupromorphine_counties,cumulative_total_beupromorphine= 0)
+total_beupromorphine <- total_beupromorphine[,-1]
+colnames(total_beupromorphine)[1] <- "GEOID"
+total_beupromorphine <- rbind(total_beupromorphine,zero_beupromorphine_counties_data)
+total_beupromorphine <- total_beupromorphine[order(total_beupromorphine$GEOID),]
+### adding beupronorphine ### 
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
+                                                        total_beupromorphine,by="GEOID")
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>%
+  mutate(cumulative_total_beupromorphine= cumulative_total_beupromorphine/population)
+cdc_mort_data_fips_wise_death_certificates$cumulative_total_beupromorphine <- rescale(cdc_mort_data_fips_wise_death_certificates$cumulative_total_beupromorphine,
+                                                                            cumulative_total_dose=c(0,1))
+##### fentanyl count state wise ####
 
 
 
@@ -299,6 +322,7 @@ cdc_mort_data_fips_wise_death_certificates$cumulative_total_dose <- rescale(cdc_
 ##### renaming naloxone and opiods columns###
 colnames(cdc_mort_data_fips_wise_death_certificates)[16] <- "Naloxone_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[17] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[18] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[3] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[8] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_spatial_proximity"
@@ -313,13 +337,14 @@ summary(nb1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximit
                       + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
                         + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
-                      +ODR+ Naloxone_Available, 
+                      +ODR+ Naloxone_Available +Buprenorphine_Available, 
                       data = cdc_mort_data_fips_wise_death_certificates,weights=population,
-                      control = glm.control(maxit = 100)))
+                      control = glm.control(maxit = 500)))
 
 # Display coefficients and clustered standard errors
 nb_1_clustered_std_error <- coeftest(nb1,vcov = vcovCL,
                                      cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+nb_1_clustered_std_error
 
 library(stargazer)
 stargazer(nb1, nb_1_clustered_std_error, type = "latex", 
@@ -333,7 +358,7 @@ summary(lm_model <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spat
                        + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
                        + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
                        + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-                       + ODR + Naloxone_Available, 
+                       + ODR + Naloxone_Available+Buprenorphine_Available, 
                        data = cdc_mort_data_fips_wise_death_certificates, 
                        weights = population))
 
@@ -341,7 +366,7 @@ library(sandwich)
 library(lmtest)
 lm_clustered_error <- coeftest(lm_model, vcov = vcovCL, 
                                cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-
+lm_clustered_error
 stargazer(lm_model, lm_clustered_error, type = "latex", 
           title = "Linear Regression with and without Clustered SE")
 
