@@ -313,9 +313,135 @@ cdc_mort_data_fips_wise_death_certificates$cumulative_total_beupromorphine <- re
                                                                             cumulative_total_dose=c(0,1))
 ##### fentanyl count state wise ####
 
+fentanyl_2018 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NFLIS Data tables/NFLIS Data tables/2018NFLISWebsiteTable3_for_analysis.csv')
+### slicing the data to get states and the related drugs
+fentanyl_2018_a  <- fentanyl_2018 %>% slice(1:49)
+### fixing the column names
+fentanyl_2018_a <- rbind(colnames(fentanyl_2018_a), fentanyl_2018_a)
+## setting the column names as default
+colnames(fentanyl_2018_a) <- seq(ncol(fentanyl_2018_a))
+### renaming the first entry to speicfy state instead of druf
+colnames(fentanyl_2018_a)[1] <- "Drug"
+## removing column 1 ##
+fentanyl_2018_a <- fentanyl_2018_a[-1,]
+####
+fentanyl_2018_a[, 2:14] <- lapply(fentanyl_2018_a[, 2:14], as.numeric)
+fentanyl_2018_a[is.na(fentanyl_2018_a)] <- 0
+
+cumulative_fentanyl_2018_a <- data.frame(
+  State = colnames(fentanyl_2018_a)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_a[-1])
+)
+rownames(cumulative_fentanyl_2018_a) <- 1:nrow(cumulative_fentanyl_2018_a)
 
 
 
+### fentanyl_a, fentanyl_b and so these represents different state wise enteries for fentanyl
+### since the initial data frame was not clean we had to slice it and extract them as independent enteries
+### we repeated the steps done for fentanyl_a for fentanyl_b ##
+fentanyl_2018_b <- fentanyl_2018 %>% slice(50:99)
+colnames(fentanyl_2018_b) <- fentanyl_2018_b[1,]
+colnames(fentanyl_2018_b)[1] <- "Drug"
+fentanyl_2018_b <- fentanyl_2018_b[-1,]
+fentanyl_2018_b[, 2:14] <- lapply(fentanyl_2018_b[, 2:14], as.numeric)
+fentanyl_2018_b[is.na(fentanyl_2018_b)] <- 0
+
+cumulative_fentanyl_2018_b <- data.frame(
+  State = colnames(fentanyl_2018_b)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_b[-1])
+)
+rownames(cumulative_fentanyl_2018_b) <- 1:nrow(cumulative_fentanyl_2018_b)
+
+## similarly for fentanyl_c ##
+fentanyl_2018_c <- fentanyl_2018 %>% slice(100:149)
+colnames(fentanyl_2018_c) <- fentanyl_2018_c[1,]
+colnames(fentanyl_2018_c)[1] <- "Drug"
+fentanyl_2018_c <- fentanyl_2018_c[-1,]
+fentanyl_2018_c[, 2:14] <- lapply(fentanyl_2018_c[, 2:14], as.numeric)
+fentanyl_2018_c[is.na(fentanyl_2018_c)] <- 0
+
+cumulative_fentanyl_2018_c <- data.frame(
+  State = colnames(fentanyl_2018_c)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_c[-1])
+)
+rownames(cumulative_fentanyl_2018_c) <- 1:nrow(cumulative_fentanyl_2018_c)
+
+
+### similarly for fentanyl_d
+fentanyl_2018_d <- fentanyl_2018 %>% slice(150:199)
+colnames(fentanyl_2018_d) <- fentanyl_2018_d[1,]
+colnames(fentanyl_2018_d)[1] <- "Drug"
+fentanyl_2018_d <- fentanyl_2018_d[,-14]
+fentanyl_2018_d <- fentanyl_2018_d[-1,]
+fentanyl_2018_d[, 2:13] <- lapply(fentanyl_2018_d[, 2:13], as.numeric)
+fentanyl_2018_d[is.na(fentanyl_2018_d)] <- 0
+
+cumulative_fentanyl_2018_d <- data.frame(
+  State = colnames(fentanyl_2018_d)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_d[-1])
+)
+rownames(cumulative_fentanyl_2018_d) <- 1:nrow(cumulative_fentanyl_2018_d)
+
+### cumulative fentanyl count for entire us 2018 #
+
+total_fentanyl_2018_us <- rbind(cumulative_fentanyl_2018_a,cumulative_fentanyl_2018_b,cumulative_fentanyl_2018_c,cumulative_fentanyl_2018_d)
+colnames(total_fentanyl_2018_us)[2] <- "2018_total_cumulative_total_fentanyl"
+### now we will repeat if for 2019 ###
+fentanyl_2019 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NFLIS Data tables/NFLIS Data tables/NFLISPublicData_2019_Table3_for_analysis.csv')
+fentanyl_2019_a  <- fentanyl_2019 %>% slice(1:41)
+fentanyl_2019_a[, 2:14] <- lapply(fentanyl_2019_a[, 2:14], as.numeric)
+fentanyl_2019_a[is.na(fentanyl_2019_a)] <- 0
+
+cumulative_fentanyl_2019_a <- data.frame(
+  State = colnames(fentanyl_2019_a)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_a[-1])
+)
+rownames(cumulative_fentanyl_2019_a) <- 1:nrow(cumulative_fentanyl_2019_a)
+
+#### fentanyl_2019_b ###
+fentanyl_2019_b  <- fentanyl_2019 %>% slice(42:83)
+colnames(fentanyl_2019_b) <- fentanyl_2019_b[1,]
+fentanyl_2019_b <- fentanyl_2019_b[-1,]
+fentanyl_2019_b[, 2:14] <- lapply(fentanyl_2019_b[, 2:14], as.numeric)
+fentanyl_2019_b[is.na(fentanyl_2019_b)] <- 0
+
+cumulative_fentanyl_2019_b <- data.frame(
+  State = colnames(fentanyl_2019_b)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_b[-1])
+)
+rownames(cumulative_fentanyl_2019_b) <- 1:nrow(cumulative_fentanyl_2019_b)
+
+#### fentanyl_2019_c
+fentanyl_2019_c  <- fentanyl_2019 %>% slice(84:125)
+colnames(fentanyl_2019_c) <- fentanyl_2019_c[1,]
+fentanyl_2019_c <- fentanyl_2019_c[-1,]
+fentanyl_2019_c[, 2:14] <- lapply(fentanyl_2019_c[, 2:14], as.numeric)
+fentanyl_2019_c[is.na(fentanyl_2019_c)] <- 0
+
+cumulative_fentanyl_2019_c <- data.frame(
+  State = colnames(fentanyl_2019_c)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_c[-1])
+)
+rownames(cumulative_fentanyl_2019_c) <- 1:nrow(cumulative_fentanyl_2019_c)
+#### fentanyl 2019_d ####
+fentanyl_2019_d  <- fentanyl_2019 %>% slice(126:167)
+colnames(fentanyl_2019_d) <- fentanyl_2019_d[1,]
+fentanyl_2019_d <- fentanyl_2019_d[-1,]
+fentanyl_2019_d <- fentanyl_2019_d[,-14]
+fentanyl_2019_d[, 2:13] <- lapply(fentanyl_2019_d[, 2:13], as.numeric)
+fentanyl_2019_d[is.na(fentanyl_2019_d)] <- 0
+
+cumulative_fentanyl_2019_d <- data.frame(
+  State = colnames(fentanyl_2019_d)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_d[-1])
+)
+rownames(cumulative_fentanyl_2019_d) <- 1:nrow(cumulative_fentanyl_2019_d)
+
+total_fentanyl_2019_us <- rbind(cumulative_fentanyl_2019_a,cumulative_fentanyl_2019_b,cumulative_fentanyl_2019_c,cumulative_fentanyl_2019_d)
+colnames(total_fentanyl_2019_us)[2] <- "2019_total_cumulative_total_fentanyl"
+#### aggregate fentanyl 2018-2019 US ###
+total_fentanyl_2018_2019_US <- left_join(total_fentanyl_2018_us,total_fentanyl_2019_us,by="State")
+total_fentanyl_2018_2019_US$cumulative_2018_2019_fentanyl <- total_fentanyl_2018_2019_US[,2]+total_fentanyl_2018_2019_US[,3]
 
 
 
