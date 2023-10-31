@@ -316,14 +316,7 @@ cdc_mort_data_fips_wise_death_certificates$cumulative_total_beupromorphine <- re
 fentanyl_2018 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NFLIS Data tables/NFLIS Data tables/2018NFLISWebsiteTable3_for_analysis.csv')
 ### slicing the data to get states and the related drugs
 fentanyl_2018_a  <- fentanyl_2018 %>% slice(1:49)
-### fixing the column names
-fentanyl_2018_a <- rbind(colnames(fentanyl_2018_a), fentanyl_2018_a)
-## setting the column names as default
-colnames(fentanyl_2018_a) <- seq(ncol(fentanyl_2018_a))
-### renaming the first entry to speicfy state instead of druf
-colnames(fentanyl_2018_a)[1] <- "Drug"
 ## removing column 1 ##
-fentanyl_2018_a <- fentanyl_2018_a[-1,]
 ####
 fentanyl_2018_a[, 2:14] <- lapply(fentanyl_2018_a[, 2:14], as.numeric)
 fentanyl_2018_a[is.na(fentanyl_2018_a)] <- 0
@@ -442,17 +435,41 @@ colnames(total_fentanyl_2019_us)[2] <- "2019_total_cumulative_total_fentanyl"
 #### aggregate fentanyl 2018-2019 US ###
 total_fentanyl_2018_2019_US <- left_join(total_fentanyl_2018_us,total_fentanyl_2019_us,by="State")
 total_fentanyl_2018_2019_US$cumulative_2018_2019_fentanyl <- total_fentanyl_2018_2019_US[,2]+total_fentanyl_2018_2019_US[,3]
+total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US[-c(2,12),]
+#### getting population for states ####
+state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
+colnames(state_population)[1] <- "State"
+total_fentanyl_2018_2019_US <- left_join(total_fentanyl_2018_2019_US,state_population,by="State")
+total_fentanyl_2018_2019_US[8,5] <- 692683
+### mutate to get state wise fentanyl count per capita ###
+total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US %>% mutate(St_count_illicit_opioid_reported=
+                                                                        cumulative_2018_2019_fentanyl/total_population 
+)
+state_fentanyl_count_per_capita <- total_fentanyl_2018_2019_US[,c(1,6)]
 
+#### getting abbrevations for each state to merge it with cdc_mort_Data##
+state_name_and_abrevations <- fips_code %>% distinct(state, state_name)
+colnames(state_name_and_abrevations)[2] <- "State"
+state_fentanyl_count_per_capita <- left_join(state_fentanyl_count_per_capita, state_name_and_abrevations, by="State")
+
+colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
+### filtering for eastern united states ###
+
+state_fentanyl_count_per_capita <- state_fentanyl_count_per_capita %>% filter(stnchsxo %in% eastern_states)
+cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
+                                                        state_fentanyl_count_per_capita, by="stnchsxo")
+cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,19,2:20)]
+
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(20)]
 
 
 ##### renaming naloxone and opiods columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[16] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[17] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[18] <- "Buprenorphine_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[3] <- "deaths"
-colnames(cdc_mort_data_fips_wise_death_certificates)[8] <- "deaths_social_porximity"
-colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_spatial_proximity"
-
+colnames(cdc_mort_data_fips_wise_death_certificates)[17] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[18] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[19] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
+colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
+colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
 #### scale population####
 cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_fips_wise_death_certificates$population, 
                                                                  to=c(0,1))
