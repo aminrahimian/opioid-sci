@@ -559,38 +559,38 @@ stargazer(lm_model, lm_clustered_error, type = "latex",
 
 #### autocorrelation model ###
 ### network ####
-# library(spdep)
-# library(spatialreg)
-# network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
-#                                                 deaths_spatial_proximity
-#                                               + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
-#                                               + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-#                                               + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-#                                               + ODR + Naloxone_Available+Buprenorphine_Available+
-#                                                 St_count_illicit_opioid_reported, 
-#                                               data=cdc_mort_data_fips_wise_death_certificates,
-#                                               listw = lw_1,
-#                                               zero.policy = TRUE,
-#                                               tol.solve = 1*exp(-50)
-# )
+library(spdep)
+ library(spatialreg)
+ network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
+                                                 deaths_spatial_proximity
+                                               + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+                                               + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                                               + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+                                               + ODR + Naloxone_Available+Buprenorphine_Available+
+                                                 St_count_illicit_opioid_reported, 
+                                               data=cdc_mort_data_fips_wise_death_certificates,
+                                               listw = lw_1,
+                                               zero.policy = TRUE,
+                                               tol.solve = 1*exp(-50)
+ )
 # 
-# summary(network_autocorrelation)
+ summary(network_autocorrelation)
 # #### spatial ####
-# diag(a_i_j) <- 0
-# lw_2 <- mat2listw(a_i_j, style='W')
-# spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
-#                                         deaths_spatial_proximity
-#                                       + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
-#                                       + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-#                                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-#                                       + ODR + Naloxone_Available+Buprenorphine_Available+
-#                                         St_count_illicit_opioid_reported, 
-#                                       data=cdc_mort_data_fips_wise_death_certificates,
-#                                       listw = lw_2,
-#                                       zero.policy = TRUE,
-#                                       tol.solve = 1*exp(-50)
-# )
-# summary(spatial_autocorrelation)
+ diag(a_i_j) <- 0
+ lw_2 <- mat2listw(a_i_j, style='W')
+ spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
+                                         deaths_spatial_proximity
+                                      + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+                                       + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                                      + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+                                       + ODR + Naloxone_Available+Buprenorphine_Available+
+                                         St_count_illicit_opioid_reported, 
+                                       data=cdc_mort_data_fips_wise_death_certificates,
+                                       listw = lw_2,
+                                       zero.policy = TRUE,
+                                       tol.solve = 1*exp(-50)
+ )
+ summary(spatial_autocorrelation)
 
 
 stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
