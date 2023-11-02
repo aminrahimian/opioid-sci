@@ -191,7 +191,8 @@ row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
 cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
 ####storing the matrix weight spatial format ###
 w_i_j <- as.matrix(cumulative_sci_weighted_test)
-lw_1 <- mat2listw(cumulative_sci_weighted_test)
+diag(w_i_j) <- 0
+lw_1 <- mat2listw(w_i_j, style='W')
 #### further calculating s_{-i}
 v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
@@ -230,10 +231,6 @@ a_i_j <- as.matrix(a_i_j)
 # Normalize a_i_j
 normalised_scale <- rowSums(a_i_j)
 a_i_j <- a_i_j / normalised_scale
-####storing the distance matrix weight spatial format ###
-lw_2 <- mat2listw(a_i_j)
-
-
 # Perform matrix multiplication for deaths in spatial proximity ###
 d_minus_i <- a_i_j %*% y
 
@@ -474,6 +471,7 @@ total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US %>% mutate(St_count_i
                                                                         cumulative_2018_2019_fentanyl/total_population 
                                                                         )
 state_fentanyl_count_per_capita <- total_fentanyl_2018_2019_US[,c(1,6)]
+state_fentanyl_count_per_capita[8,1] <- "District of Columbia"
 
 #### getting abbrevations for each state to merge it with cdc_mort_Data##
 state_name_and_abrevations <- fips_code %>% distinct(state, state_name)
@@ -498,6 +496,16 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
 
+#### last pre processing ###
+# FIPS codes to update
+fips_to_update <- c("36005", "36047", "36061", "36081", "36085")
+
+# Update stnchsxo to "NY" and St_count_illicit_opioid_reported to 4.179372e-05 for the specified FIPS codes
+cdc_mort_data_fips_wise_death_certificates$stnchsxo[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- "NY"
+cdc_mort_data_fips_wise_death_certificates$St_count_illicit_opioid_reported[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- 4.179372e-05
+
+
+
 #### scale population####
 cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_fips_wise_death_certificates$population, 
                                                                  to=c(0,1))
@@ -505,10 +513,12 @@ cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_f
 write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_entire_united_cdc_2018_2019.csv')
 
 
+cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
+cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,-1]
 
 #### nbr ###
 library(MASS)
-summary(nb1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity
+summary(nb_1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity
                       + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
                         + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
@@ -517,9 +527,14 @@ summary(nb1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximit
                       control = glm.control(maxit = 1000)))
 
 #### negative binomial regression ####
-nb_1_clustered_std_error <- coeftest(nb1,vcov = vcovCL,
+nb_1_clustered_std_error <- coeftest(nb_1,vcov = vcovCL,
                                      cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
 nb_1_clustered_std_error
+
+
+library(stargazer)
+stargazer(nb_1, nb_1_clustered_std_error, type = "latex", 
+          title = "Negative Binomial Model with and without Clustered SE")
 
 #### linear regression ####
 summary(lm_model <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity
@@ -537,4 +552,47 @@ lm_clustered_error <- coeftest(lm_model, vcov = vcovCL,
                                cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
 lm_clustered_error
 
+
+stargazer(lm_model, lm_clustered_error, type = "latex", 
+          title = "Linear Regression with and without Clustered SE")
+
+
+#### autocorrelation model ###
+### network ####
+# library(spdep)
+# library(spatialreg)
+# network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
+#                                                 deaths_spatial_proximity
+#                                               + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+#                                               + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+#                                               + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+#                                               + ODR + Naloxone_Available+Buprenorphine_Available+
+#                                                 St_count_illicit_opioid_reported, 
+#                                               data=cdc_mort_data_fips_wise_death_certificates,
+#                                               listw = lw_1,
+#                                               zero.policy = TRUE,
+#                                               tol.solve = 1*exp(-50)
+# )
+# 
+# summary(network_autocorrelation)
+# #### spatial ####
+# diag(a_i_j) <- 0
+# lw_2 <- mat2listw(a_i_j, style='W')
+# spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
+#                                         deaths_spatial_proximity
+#                                       + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+#                                       + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+#                                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+#                                       + ODR + Naloxone_Available+Buprenorphine_Available+
+#                                         St_count_illicit_opioid_reported, 
+#                                       data=cdc_mort_data_fips_wise_death_certificates,
+#                                       listw = lw_2,
+#                                       zero.policy = TRUE,
+#                                       tol.solve = 1*exp(-50)
+# )
+# summary(spatial_autocorrelation)
+
+
+stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
+          title = "Autocorrelation Models")
 
