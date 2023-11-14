@@ -264,6 +264,286 @@ calculateSpatialProximity <- function(oods_df) {
 d_minus_i_2018 <- calculateSpatialProximity(oods_2018)
 d_minus_i_2019 <- calculateSpatialProximity(oods_2019)
 
+#### adding social and spatial df to the ood_s data_frame ####
+oods_2018 <- oods_2018[order(oods_2018$GEOID),]
+oods_2019 <- oods_2019[order(oods_2019$GEOID),]
+oods_2018 <- cbind(oods_2018,result_2018$s_minus_i)
+colnames(oods_2018)[9] <- "deaths_in_social_proximity"
+oods_2018 <- cbind(oods_2018,d_minus_i_2018)
+colnames(oods_2018)[10] <- "deaths_in_spatial_proximity"
+
+oods_2019 <-cbind(oods_2019,result_2019$s_minus_i)
+oods_2019 <- cbind(oods_2019,d_minus_i_2019)
+colnames(oods_2019)[9] <- "deaths_in_social_proximity"
+colnames(oods_2019)[10] <- "deaths_in_spatial_proximity"
+
+
+#### clinical covariates ###
+#### naloxone ####
+naloxone_2018 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2018.sas7bdat")
+naloxone_2019 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/naloxone/naloxone_county_2019.sas7bdat")
+total_naloxone <- rbind(naloxone_2018, naloxone_2019)
+total_naloxone <- total_naloxone %>% filter(state_and_county_fip  %in% oods_2018$GEOID )
+total_naloxone <- total_naloxone %>% group_by(county_nm,state_and_county_fip,year) %>% 
+  summarise(avg_total_rx = mean(total_rx, na.rm = TRUE))
+
+### total naloxone subsetting geoid avg_total_rx ####
+total_naloxone <- total_naloxone[,-1]
+colnames(total_naloxone)[1] <- "GEOID"
+#total_naloxone$avg_total_rx <- rescale(total_naloxone$avg_total_rx,to=c(0,1))
+total_naloxone <- total_naloxone[order(total_naloxone$GEOID),]
+#### total_naloxone #####
+total_naloxone_2018 <- total_naloxone %>% group_by(total_naloxone$year) %>% filter(year == 2018)
+total_naloxone_2018 <- total_naloxone_2018[,-4]
+zero_naloxone_2018 <- setdiff(oods_2018$GEOID,total_naloxone_2018$GEOID)
+df_zero_naloxone_2018 <- data.frame(GEOID=zero_naloxone_2018,year= rep(2018),avg_total_rx=rep(0))
+total_naloxone_2018 <- rbind(total_naloxone_2018,df_zero_naloxone_2018)
+total_naloxone_2018 <- total_naloxone_2018[order(total_naloxone_2018$GEOID),]
+####### total_naloxone 2019 #######
+total_naloxone_2019 <- total_naloxone %>% group_by(total_naloxone$year) %>% filter(year == 2019)
+total_naloxone_2019 <- total_naloxone_2019[,-4]
+zero_naloxone_2019 <- setdiff(oods_2019$GEOID,total_naloxone_2019$GEOID)
+df_zero_naloxone_2019 <- data.frame(GEOID=zero_naloxone_2019, year= rep(2019), avg_total_rx=rep(0))
+total_naloxone_2019 <- rbind(total_naloxone_2019,df_zero_naloxone_2019)
+total_naloxone_2019 <- total_naloxone_2019[order(total_naloxone_2019$GEOID),]
+#### adding naloxone to oods_df### 
+oods_2018 <- left_join(oods_2018,total_naloxone_2018,by="GEOID")
+oods_2018 <- oods_2018[,-11]
+oods_2018 <- oods_2018 %>%
+  mutate(avg_total_rx=avg_total_rx/population)
+oods_2019 <- left_join(oods_2019,total_naloxone_2019,by="GEOID")
+oods_2019 <- oods_2019[,-11]
+oods_2019 <- oods_2019 %>%
+  mutate(avg_total_rx=avg_total_rx/population)
+#### clinical covariates odr #####
+opioids_2018<- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2018.sas7bdat")
+opioids_2019 <- read_sas("C:/Users/kusha/Downloads/OneDrive_2023-05-10/IQVIA prescriptions/opioid/opioids_county_2019.sas7bdat")
+total_opioids <- rbind(opioids_2018,opioids_2019)
+total_opioids <- total_opioids %>% filter(state_fip_county_fip %in% 
+                                            Soc.2019$GEOID )
+total_opioids <- total_opioids %>% group_by(county_nm, state_fip_county_fip,year) %>% 
+  summarise( cumulative_total_dose=sum(total_dose))
+
+total_opioids <- total_opioids[,-1]
+colnames(total_opioids)[1] <- "GEOID"
+
+## odr 2018 ###
+total_opioids_2018 <- total_opioids %>% group_by(year) %>% filter(year==2018)
+zero_odr_2018 <- setdiff(Soc.2019$GEOID, total_opioids_2018$GEOID)
+df_zero_odr_2018 <- data.frame(GEOID=zero_odr_2018, year= rep(2018), cumulative_total_dose=rep(0))
+total_opioids_2018 <- rbind(total_opioids_2018,df_zero_odr_2018)
+
+### odr 2019 ######
+total_opioids_2019 <- total_opioids %>% group_by(year) %>% filter(year==2019)
+zero_odr_2019 <- setdiff(Soc.2019$GEOID, total_opioids_2019$GEOID)
+df_zero_odr_2019 <- data.frame(GEOID=zero_odr_2019, year= rep(2019), cumulative_total_dose=rep(0))
+total_opioids_2019 <- rbind(total_opioids_2019,df_zero_odr_2019)
+### joining odr_2018 and oder_2019 with oods_df###
+oods_2018 <- left_join(oods_2018,total_opioids_2018, by="GEOID")
+oods_2019 <- left_join(oods_2019, total_opioids_2019, by="GEOID")
+oods_2018 <- oods_2018[,-12]
+oods_2019 <- oods_2019[,-12]
+oods_2018 <- oods_2018 %>%
+  mutate(cumulative_total_dose=cumulative_total_dose/population)
+oods_2019 <- oods_2019 %>%
+  mutate(cumulative_total_dose=cumulative_total_dose/population)
+#### beupromorphne ###
+beupromorphine_2018 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2018.sas7bdat")
+beupromorphine_2019 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2019.sas7bdat")
+total_beupromorphine <- rbind(beupromorphine_2018,beupromorphine_2019)
+total_beupromorphine <- total_beupromorphine %>% filter(state_fip_county_fip %in% 
+                                                          Soc.2019$GEOID )
+total_beupromorphine  <- total_beupromorphine  %>% group_by(county_nm, state_fip_county_fip, year) %>% 
+  summarise( cumulative_total_beupromorphine=mean(total_rx))
+total_beupromorphine  <- total_beupromorphine [,-1]
+colnames(total_beupromorphine )[1] <- "GEOID"
+#### beupromorphine 2018###
+total_beupromorphine_2018 <- total_beupromorphine %>% filter(year==2018 )
+zero_beupromorphine_2018 <- setdiff(Soc.2019$GEOID,total_beupromorphine_2018$GEOID)
+df_zero_beupromorphine_2018 <- data.frame(GEOID=zero_beupromorphine_2018 , year= rep(2018), cumulative_total_beupromorphine=rep(0))
+total_beupromorphine_2018  <- rbind(total_beupromorphine_2018 ,df_zero_beupromorphine_2018 )
+#### beupromorphine 2019###
+total_beupromorphine_2019 <- total_beupromorphine %>% filter(year == 2019)
+zero_beupromorphine_2019 <- setdiff(Soc.2019$GEOID, total_beupromorphine_2019$GEOID)
+df_zero_beupromorphine_2019 <- data.frame(GEOID = zero_beupromorphine_2019, year = rep(2019), cumulative_total_beupromorphine = rep(0))
+total_beupromorphine_2019 <- rbind(total_beupromorphine_2019, df_zero_beupromorphine_2019)
+### adding beupromorphine 2018 and 2019 to oods_df ####
+oods_2018 <- left_join(oods_2018,total_beupromorphine_2018, by="GEOID")
+oods_2019 <- left_join(oods_2019,total_beupromorphine_2019, by="GEOID")
+oods_2018 <- oods_2018[,-13]
+oods_2019 <- oods_2019[,-13]
+oods_2018 <- oods_2018 %>%
+  mutate(cumulative_total_dose=cumulative_total_beupromorphine/population)
+oods_2019 <- oods_2019 %>%
+  mutate(cumulative_total_dose=cumulative_total_beupromorphine/population)
+#### fentanyl ####
+fentanyl_2018 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NFLIS Data tables/NFLIS Data tables/2018NFLISWebsiteTable3_for_analysis.csv')
+### slicing the data to get states and the related drugs
+fentanyl_2018_a  <- fentanyl_2018 %>% slice(1:49)
+## removing column 1 ##
+####
+fentanyl_2018_a[, 2:14] <- lapply(fentanyl_2018_a[, 2:14], as.numeric)
+fentanyl_2018_a[is.na(fentanyl_2018_a)] <- 0
+
+cumulative_fentanyl_2018_a <- data.frame(
+  State = colnames(fentanyl_2018_a)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_a[-1])
+)
+rownames(cumulative_fentanyl_2018_a) <- 1:nrow(cumulative_fentanyl_2018_a)
+
+
+
+### fentanyl_a, fentanyl_b and so these represents different state wise enteries for fentanyl
+### since the initial data frame was not clean we had to slice it and extract them as independent enteries
+### we repeated the steps done for fentanyl_a for fentanyl_b ##
+fentanyl_2018_b <- fentanyl_2018 %>% slice(50:99)
+colnames(fentanyl_2018_b) <- fentanyl_2018_b[1,]
+colnames(fentanyl_2018_b)[1] <- "Drug"
+fentanyl_2018_b <- fentanyl_2018_b[-1,]
+fentanyl_2018_b[, 2:14] <- lapply(fentanyl_2018_b[, 2:14], as.numeric)
+fentanyl_2018_b[is.na(fentanyl_2018_b)] <- 0
+
+cumulative_fentanyl_2018_b <- data.frame(
+  State = colnames(fentanyl_2018_b)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_b[-1])
+)
+rownames(cumulative_fentanyl_2018_b) <- 1:nrow(cumulative_fentanyl_2018_b)
+
+## similarly for fentanyl_c ##
+fentanyl_2018_c <- fentanyl_2018 %>% slice(100:149)
+colnames(fentanyl_2018_c) <- fentanyl_2018_c[1,]
+colnames(fentanyl_2018_c)[1] <- "Drug"
+fentanyl_2018_c <- fentanyl_2018_c[-1,]
+fentanyl_2018_c[, 2:14] <- lapply(fentanyl_2018_c[, 2:14], as.numeric)
+fentanyl_2018_c[is.na(fentanyl_2018_c)] <- 0
+
+cumulative_fentanyl_2018_c <- data.frame(
+  State = colnames(fentanyl_2018_c)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_c[-1])
+)
+rownames(cumulative_fentanyl_2018_c) <- 1:nrow(cumulative_fentanyl_2018_c)
+
+
+### similarly for fentanyl_d
+fentanyl_2018_d <- fentanyl_2018 %>% slice(150:199)
+colnames(fentanyl_2018_d) <- fentanyl_2018_d[1,]
+colnames(fentanyl_2018_d)[1] <- "Drug"
+fentanyl_2018_d <- fentanyl_2018_d[,-14]
+fentanyl_2018_d <- fentanyl_2018_d[-1,]
+fentanyl_2018_d[, 2:13] <- lapply(fentanyl_2018_d[, 2:13], as.numeric)
+fentanyl_2018_d[is.na(fentanyl_2018_d)] <- 0
+
+cumulative_fentanyl_2018_d <- data.frame(
+  State = colnames(fentanyl_2018_d)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2018_d[-1])
+)
+rownames(cumulative_fentanyl_2018_d) <- 1:nrow(cumulative_fentanyl_2018_d)
+
+### cumulative fentanyl count for entire us 2018 #
+
+total_fentanyl_2018_us <- rbind(cumulative_fentanyl_2018_a,cumulative_fentanyl_2018_b,cumulative_fentanyl_2018_c,cumulative_fentanyl_2018_d)
+colnames(total_fentanyl_2018_us)[2] <- "2018_total_cumulative_total_fentanyl"
+### now we will repeat if for 2019 ###
+fentanyl_2019 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NFLIS Data tables/NFLIS Data tables/NFLISPublicData_2019_Table3_for_analysis.csv')
+fentanyl_2019_a  <- fentanyl_2019 %>% slice(1:41)
+fentanyl_2019_a[, 2:14] <- lapply(fentanyl_2019_a[, 2:14], as.numeric)
+fentanyl_2019_a[is.na(fentanyl_2019_a)] <- 0
+
+cumulative_fentanyl_2019_a <- data.frame(
+  State = colnames(fentanyl_2019_a)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_a[-1])
+)
+rownames(cumulative_fentanyl_2019_a) <- 1:nrow(cumulative_fentanyl_2019_a)
+
+#### fentanyl_2019_b ###
+fentanyl_2019_b  <- fentanyl_2019 %>% slice(42:83)
+colnames(fentanyl_2019_b) <- fentanyl_2019_b[1,]
+fentanyl_2019_b <- fentanyl_2019_b[-1,]
+fentanyl_2019_b[, 2:14] <- lapply(fentanyl_2019_b[, 2:14], as.numeric)
+fentanyl_2019_b[is.na(fentanyl_2019_b)] <- 0
+
+cumulative_fentanyl_2019_b <- data.frame(
+  State = colnames(fentanyl_2019_b)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_b[-1])
+)
+rownames(cumulative_fentanyl_2019_b) <- 1:nrow(cumulative_fentanyl_2019_b)
+
+#### fentanyl_2019_c
+fentanyl_2019_c  <- fentanyl_2019 %>% slice(84:125)
+colnames(fentanyl_2019_c) <- fentanyl_2019_c[1,]
+fentanyl_2019_c <- fentanyl_2019_c[-1,]
+fentanyl_2019_c[, 2:14] <- lapply(fentanyl_2019_c[, 2:14], as.numeric)
+fentanyl_2019_c[is.na(fentanyl_2019_c)] <- 0
+
+cumulative_fentanyl_2019_c <- data.frame(
+  State = colnames(fentanyl_2019_c)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_c[-1])
+)
+rownames(cumulative_fentanyl_2019_c) <- 1:nrow(cumulative_fentanyl_2019_c)
+#### fentanyl 2019_d ####
+fentanyl_2019_d  <- fentanyl_2019 %>% slice(126:167)
+colnames(fentanyl_2019_d) <- fentanyl_2019_d[1,]
+fentanyl_2019_d <- fentanyl_2019_d[-1,]
+fentanyl_2019_d <- fentanyl_2019_d[,-14]
+fentanyl_2019_d[, 2:13] <- lapply(fentanyl_2019_d[, 2:13], as.numeric)
+fentanyl_2019_d[is.na(fentanyl_2019_d)] <- 0
+
+cumulative_fentanyl_2019_d <- data.frame(
+  State = colnames(fentanyl_2019_d)[-1],  # Exclude the 'Drug' column
+  Total_Sum = colSums(fentanyl_2019_d[-1])
+)
+rownames(cumulative_fentanyl_2019_d) <- 1:nrow(cumulative_fentanyl_2019_d)
+
+total_fentanyl_2019_us <- rbind(cumulative_fentanyl_2019_a,cumulative_fentanyl_2019_b,cumulative_fentanyl_2019_c,cumulative_fentanyl_2019_d)
+colnames(total_fentanyl_2019_us)[2] <- "2019_total_cumulative_total_fentanyl"
+#### aggregate fentanyl 2018-2019 US ###
+total_fentanyl_2018_us  <- total_fentanyl_2018_us[-c(2,12),]
+total_fentanyl_2019_us  <- total_fentanyl_2019_us[-c(2,12),]
+
+### population ####
+state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
+colnames(state_population)[1] <- "State"
+
+#### adding population to the data set ####
+total_fentanyl_2018_us[8,1] <- "District of Columbia"
+total_fentanyl_2019_us[8,1] <- "District of Columbia"
+total_fentanyl_2018_us <- left_join(total_fentanyl_2018_us,state_population,by="State")
+total_fentanyl_2019_us <- left_join(total_fentanyl_2019_us,state_population,by="State")
+
+
+### mutate to get state wise fentanyl count per capita ###
+colnames(total_fentanyl_2018_us)[2] <- "fentany_state"
+colnames(total_fentanyl_2019_us)[2] <- "fentany_state"
+
+state_name_and_abrevations <- fips_code %>% distinct(state, state_name)
+colnames(state_name_and_abrevations)[2] <- "State"
+
+total_fentanyl_2018_us <- total_fentanyl_2018_us %>% mutate(St_count_illicit_opioid_reported=
+                                                              fentany_state/total_population 
+)
+total_fentanyl_2019_us <- total_fentanyl_2019_us %>% mutate(St_count_illicit_opioid_reported=
+                                                              fentany_state/total_population 
+)
+
+state_fentanyl_count_per_capita <- left_join(total_fentanyl_2018_us, 
+                                             state_name_and_abrevations, by="State")
+
+state_fentanyl_count_per_capita_2019 <- left_join(total_fentanyl_2019_us, 
+                                             state_name_and_abrevations, by="State")
+
+total_fentanyl_2018_us <- state_fentanyl_count_per_capita[,c(4,5)]
+total_fentanyl_2019_us <- state_fentanyl_count_per_capita_2019[,c(4,5)]
+
+colnames(total_fentanyl_2018_us)[2] <- "stnchsxo"
+colnames(total_fentanyl_2019_us)[2] <- "stnchsxo"
+
+### adding fentanyl to oods_df ####
+oods_2018 <- left_join(oods_2018,total_fentanyl_2018_us, "stnchsxo")
+oods_2019 <- left_join(oods_2019,total_fentanyl_2019_us, "stnchsxo")
+##### ADDING SDOH COVARIATES ######
+
+
+
 
 
 
