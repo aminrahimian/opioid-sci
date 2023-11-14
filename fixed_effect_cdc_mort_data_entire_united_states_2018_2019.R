@@ -541,9 +541,45 @@ colnames(total_fentanyl_2019_us)[2] <- "stnchsxo"
 oods_2018 <- left_join(oods_2018,total_fentanyl_2018_us, "stnchsxo")
 oods_2019 <- left_join(oods_2019,total_fentanyl_2019_us, "stnchsxo")
 ##### ADDING SDOH COVARIATES ######
+sdoh_2018 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2018_COUNTY.xlsx")
+health_determinant_2018 <- sdoh_2018 %>% filter(COUNTYFIPS %in% oods_2018$GEOID)
+health_determinant_covariates_2018 <- health_determinant_2018 %>% dplyr::select(COUNTYFIPS,ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
+                                                                      ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
+                                                                      ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
+health_determinant_covariates_2018$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates_2018$ACS_PCT_UNEMPLOY, to=c(0,1))
+health_determinant_covariates_2018$ACS_PCT_LT_HS <- rescale(health_determinant_covariates_2018$ACS_PCT_LT_HS, to=c(0,1))
+health_determinant_covariates_2018$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates_2018$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
+health_determinant_covariates_2018$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates_2018$ACS_PCT_HU_NO_VEH, to=c(0,1))
+health_determinant_covariates_2018$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates_2018$POS_MEAN_DIST_ALC, to=c(0,1))
+health_determinant_covariates_2018$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates_2018$ACS_PCT_OTHER_INS, to=c(0,1))
 
 
+#### SDOH 2019 ####
+sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
+health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% oods_2019$GEOID)
+health_determinant_covariates <- health_determinant %>% dplyr::select(COUNTYFIPS,ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
+                                                                      ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
+                                                                      ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
+health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
+health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
+health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
+health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
+health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
+health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
 
+### ADDING SDOH covariates to oods_df ####
+colnames(health_determinant_covariates_2018)[1] <- "GEOID"
+colnames(health_determinant_covariates)[1] <- "GEOID"
+oods_2018 <- left_join(oods_2018, health_determinant_covariates_2018, by="GEOID")
+oods_2019 <- left_join(oods_2019, health_determinant_covariates, by="GEOID")
+## panel_data ###
+oods_2018_2019 <- rbind(oods_2018,oods_2019)
+colnames(oods_2018_2019)[3] <- "year"
+colnames(oods_2018_2019)[11] <- "Naloxone_Available"
+colnames(oods_2018_2019)[12] <- "ODR"
+colnames(oods_2018_2019)[13] <- "Buprenorphine_Available"
+colnames(oods_2018_2019)[4] <- "deaths"
+colnames(oods_2018_2019)[9] <- "deaths_social_porximity"
+colnames(oods_2018_2019)[10] <- "deaths_spatial_proximity"
 
-
-
+####
