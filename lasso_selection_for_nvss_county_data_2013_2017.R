@@ -10,8 +10,7 @@ health_determinant <- health_determinant %>% dplyr::select(c('COUNTY', 'COUNTYFI
                                                              'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC_BELOW99', 
                                                              'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
                                                              'ACS_PCT_OTHER_INS', 'ACS_PCT_LT_HS',
-                                                             ,'AHRF_TOT_COM_HEALTH_GRANT','ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE',
-                                                             'AMFAR_MHFAC_RATE'))
+                                                             ,'AHRF_TOT_COM_HEALTH_GRANT','ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE'))
 
 
 
