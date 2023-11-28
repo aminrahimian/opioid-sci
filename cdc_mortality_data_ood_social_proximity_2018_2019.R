@@ -167,7 +167,8 @@ row_sums_cumulative_sci_weighted <- rowSums(cumulative_sci_weighted)
 cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_weighted
 ####storing the matrix weight spatial format ###
 w_i_j <- as.matrix(cumulative_sci_weighted_test)
-lw_1 <- mat2listw(cumulative_sci_weighted_test)
+diag(w_i_j) <- 0
+lw_1 <- mat2listw(w_i_j)
 #### further calculating s_{-i}
 v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
@@ -206,9 +207,6 @@ a_i_j <- as.matrix(a_i_j)
 # Normalize a_i_j
 normalised_scale <- rowSums(a_i_j)
 a_i_j <- a_i_j / normalised_scale
-####storing the distance matrix weight spatial format ###
-lw_2 <- mat2listw(a_i_j)
-
 
 # Perform matrix multiplication for deaths in spatial proximity ###
 d_minus_i <- a_i_j %*% y
@@ -439,6 +437,7 @@ total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US[-c(2,12),]
 #### getting population for states ####
 state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
 colnames(state_population)[1] <- "State"
+#### adding population to the data set ####
 total_fentanyl_2018_2019_US <- left_join(total_fentanyl_2018_2019_US,state_population,by="State")
 total_fentanyl_2018_2019_US[8,5] <- 692683
 ### mutate to get state wise fentanyl count per capita ###
@@ -446,6 +445,7 @@ total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US %>% mutate(St_count_i
                                                                         cumulative_2018_2019_fentanyl/total_population 
 )
 state_fentanyl_count_per_capita <- total_fentanyl_2018_2019_US[,c(1,6)]
+state_fentanyl_count_per_capita[8,1] <- "District of Columbia"
 
 #### getting abbrevations for each state to merge it with cdc_mort_Data##
 state_name_and_abrevations <- fips_code %>% distinct(state, state_name)
@@ -453,26 +453,39 @@ colnames(state_name_and_abrevations)[2] <- "State"
 state_fentanyl_count_per_capita <- left_join(state_fentanyl_count_per_capita, state_name_and_abrevations, by="State")
 
 colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
-### filtering for eastern united states ###
 
-state_fentanyl_count_per_capita <- state_fentanyl_count_per_capita %>% filter(stnchsxo %in% eastern_states)
+#### adding fentanyl count per capita to the data ##
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
+
 cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,19,2:20)]
 
 cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(20)]
 
-
-##### renaming naloxone and opiods columns###
+#### renaming columns###
 colnames(cdc_mort_data_fips_wise_death_certificates)[17] <- "Naloxone_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[18] <- "ODR"
 colnames(cdc_mort_data_fips_wise_death_certificates)[19] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
+
+#### last pre processing ###
+# FIPS codes to update
+fips_to_update <- c("36005", "36047", "36061", "36081", "36085")
+
+# Update stnchsxo to "NY" and St_count_illicit_opioid_reported to 4.179372e-05 for the specified FIPS codes
+cdc_mort_data_fips_wise_death_certificates$stnchsxo[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- "NY"
+cdc_mort_data_fips_wise_death_certificates$St_count_illicit_opioid_reported[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- 4.179372e-05
+
+
 #### scale population####
 cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_fips_wise_death_certificates$population, 
                                                                  to=c(0,1))
+
+
+write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_2018_2019_cdc_eastern_united_states.csv')
+
 
 #### nbr ###
 library(MASS)
@@ -480,7 +493,7 @@ summary(nb1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximit
                       + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
                         + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
-                      +ODR+ Naloxone_Available +Buprenorphine_Available, 
+                      +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
                       data = cdc_mort_data_fips_wise_death_certificates,weights=population,
                       control = glm.control(maxit = 500)))
 
@@ -501,7 +514,8 @@ summary(lm_model <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spat
                        + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
                        + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
                        + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-                       + ODR + Naloxone_Available+Buprenorphine_Available, 
+                       + ODR + Naloxone_Available+Buprenorphine_Available+
+                         St_count_illicit_opioid_reported, 
                        data = cdc_mort_data_fips_wise_death_certificates, 
                        weights = population))
 
@@ -518,38 +532,24 @@ stargazer(lm_model, lm_clustered_error, type = "latex",
 ################# spatial reg #####
 library(spdep)
 library(spatialreg)
-summary(network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
-                                                deaths_spatial_proximity
-           + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
-           + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-           + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-           + ODR + Naloxone_Available+population,
+network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity
+                                              + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
+                                              + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
+                                              + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
+                                              + ODR + Naloxone_Available+Buprenorphine_Available+
+                                                St_count_illicit_opioid_reported,
            data=cdc_mort_data_fips_wise_death_certificates,
            listw = lw_1,
            zero.policy = TRUE,
            na.action = na.omit,
-           tol.solve = 1*exp(-200)
-))
-
-# Then, fit a spatial error model on the residuals
-# Convert the w_i_j matrix to a vector
-w_i_j_vector <- as.vector(w_i_j)
+           tol.solve = 1*exp(-50)
+)
 
 
-# Create a dataframe
-df_w_i_j <- data.frame(w_i_j_values = w_i_j_vector)
 
-### 
-# Compute the 3rd Quartile from the w_i_j matrix values
-threshold <- 5.868832e-05
-
-# Convert the weighted matrix to a binary matrix based on the threshold
-binary_matrix <- w_i_j
-binary_matrix[w_i_j > threshold] <- 1
-binary_matrix[w_i_j <= threshold] <- 0
-lw_1.b <- mat2listw(binary_matrix )
-
-
+####storing the distance matrix weight spatial format ###
+diag(a_i_j) <- 0
+lw_2 <- mat2listw(a_i_j,style='W')
 
 
 summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
@@ -557,17 +557,18 @@ summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_
                                               + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
                                               + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
                                               + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-                                              + ODR + Naloxone_Available,
+                                              + ODR + Naloxone_Available+Buprenorphine_Available+
+                                                St_count_illicit_opioid_reported,
                                               data=cdc_mort_data_fips_wise_death_certificates,
                                               listw = lw_2,
-                                              weights = cdc_mort_data_fips_wise_death_certificates$population,
                                               zero.policy = TRUE,
                                               na.action = na.omit,
-                                              tol.solve = 1e-40
+                                              tol.solve = 1*exp(-50)
 ))
 
 
-
+stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
+          title = "Autocorrelation Models for the counties in the Eastern United States")
 
 
 #######################
