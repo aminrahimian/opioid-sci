@@ -1,16 +1,26 @@
 library(glmnet)
 library(randomForest)
 library(DoubleML)
+library(caret)
 data <- read.csv('nvss_ood_county_wise_2013_2017.csv')
-health_determinant <- read.csv('county_2017.csv')
+health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/SDOH_2017_COUNTY_AHRQ_covariate_Selection.csv')
 health_determinant <- health_determinant %>% dplyr::filter(health_determinant$STATE== "Pennsylvania")
-health_determinant <- health_determinant %>% dplyr::select(c('COUNTY', 'FIPSCODE' , 'ACS_PCT_SMARTPHONE', 'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC99', 'ACS_MEDIAN_HH_INCOME', 'CCBP_RATE_BWLSTORES_PER_1000', 'CHR_HOMICIDES', 'ACS_PCT_NO_VEH', 'AHRF_COMM_HLTH_CNTR', 'AHRF_MENTL_HLTH_CNT', 'CHR_SMOKING', 'CHR_MENTAL_DISTRESS', 'AMFAR_HIVDIAGNOSED'))
+health_determinant <- health_determinant %>% dplyr::select(c('COUNTY', 'COUNTYFIPS' , 
+                                                             'ACS_PCT_UNEMPLOY', 'ACS_PCT_PERSON_INC_BELOW99', 
+                                                             'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                                                             'ACS_PCT_OTHER_INS', 'ACS_PCT_LT_HS',
+                                                             ,'AHRF_TOT_COM_HEALTH_GRANT','ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE',
+                                                             'CHR_PCT_MENTAL_DISTRESS'))
+
+
+
+
 nvss_ood_county_wise_2013_2017 <- cbind(data,health_determinant)
 nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017 %>% replace(is.na(.), 0)
-nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(16,17)]
-scaled_health_determinant <- nvss_ood_county_wise_2013_2017[,c(16,17,18,19,20,21,22,23,24,25,26,27)]
+nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(9:18)]
+scaled_health_determinant <- nvss_ood_county_wise_2013_2017[,c(9:18)]
 scaled_health_determinant <- scale(scaled_health_determinant)
-nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(16,17,18,19,20,21,22,23,24,25,26,27)]
+nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(9:18)]
 nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,scaled_health_determinant)
 
 
@@ -31,7 +41,7 @@ nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,scaled_he
 #### laso based selection ####
 ##############################
 
-x <- nvss_ood_county_wise_2013_2017[,c(10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27)]
+x <- nvss_ood_county_wise_2013_2017[,c(9:18)]
 x <- as.matrix(x)
 y <- as.matrix(nvss_ood_county_wise_2013_2017$deaths_per_capita)
 set.seed(123)
@@ -45,4 +55,5 @@ plot(cv.fit)
 lambda_best <- cv.fit$lambda.min
 fit <- glmnet(x, y, alpha = 1)
 coef(fit, s = lambda_best)
+
 
