@@ -301,14 +301,14 @@ county_total_rx$cumulative_total_dose <- rescale(county_total_rx$cumulative_tota
 #### health determinant covariates###
 health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/SDOH_2017_COUNTY_AHRQ_covariate_Selection.csv')
 health_determinant <- health_determinant %>% filter(STATE=="Pennsylvania")
-selected_variables <- c("ACS_PCT_HU_NO_VEH", "POS_MEAN_DIST_ALC", "ACS_PCT_OTHER_INS", 
-                        "ACS_PCT_LT_HS", "ACS_MEDIAN_HH_INC", "CCBP_BWLSTORES_RATE", 
-                        "CHR_PCT_MENTAL_DISTRESS")
+selected_variables <- c("ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
+"ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE","AMFAR_MHFAC_RATE")
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
 health_determinant_covariates <- health_determinant_covariates %>%
   mutate(across(selected_variables, ~rescale(.x, to = c(0, 1))))
 ##### creating the data frame ###
+nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(11:16)]
 nvss_ood_county_wise_2013_2017 <-Soc.2017
 nvss_ood_county_wise_2013_2017 <- cbind(Soc.2017,county_wise_ood_with_demogrpahic_information)
 nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-c(4,6,7)]
@@ -368,10 +368,9 @@ write.csv(nvss_ood_county_wise_2013_2017,'nvss_ood_county_wise_2013_2017.csv')
 nvss_ood_county_wise_2013_2017$GEOID <- as.factor(nvss_ood_county_wise_2013_2017$GEOID)
 
 library(MASS)
-summary(nb1_PA <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity+
-                           ACS_PCT_HU_NO_VEH+POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                           ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE+
-                           CHR_PCT_MENTAL_DISTRESS
+summary(nb1_PA <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity+ACS_PCT_HU_NO_VEH+
+                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
                       + offset(log(population))
                       +ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
                       data = nvss_ood_county_wise_2013_2017,weights=population,
@@ -379,8 +378,7 @@ summary(nb1_PA <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porx
 
 lm_1_PA <- lm(deaths_per_capita ~ deaths_social_proximity  + deaths_spatial_porximity+
   ACS_PCT_HU_NO_VEH+POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-  ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE+
-  CHR_PCT_MENTAL_DISTRESS
+  ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE
 + offset(log(population))
 +ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
 data = nvss_ood_county_wise_2013_2017,weights=population)
