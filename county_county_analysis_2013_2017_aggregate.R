@@ -301,7 +301,7 @@ county_total_rx$cumulative_total_dose <- rescale(county_total_rx$cumulative_tota
 #### health determinant covariates###
 health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/SDOH_2017_COUNTY_AHRQ_covariate_Selection.csv')
 health_determinant <- health_determinant %>% filter(STATE=="Pennsylvania")
-selected_variables <- c("ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
+selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
 "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE","AMFAR_MHFAC_RATE")
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
