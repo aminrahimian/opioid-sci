@@ -88,13 +88,15 @@ library(lubridate)
 ood_data_2013_2015$dod<- mdy(ood_data_2013_2015$dod)
 ood_data_2013_2015$dod <- as.Date(ood_data_2013_2015$dod)
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(between(dod,as.Date('2013-01-01'), as.Date('2015-01-01')))
-ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40","X41","X42","X43","X44"))
+ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40", "X41", "X42", "X43", "X44", "X60", "X61", "X62",
+                                                                                  "X63", "X64", "X85", "Y10", "Y11", "Y12", "Y13", "Y14"))
 deaths_in_county_in_2013_2015 <- count(ood_data_2013_2015,county_name)                          
 
 data_2016_2017 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NVSS Data/Combined_Drug_2016_2017.csv')
 ## This is a private data set of opioid-related deaths in PA that include location and cause 
 table(data_2016_2017$COD)
-opioid_death_2016_2017 <- data_2016_2017 %>% filter(data_2016_2017$COD %in% c("X40","X41","X42","X43","X44"))
+opioid_death_2016_2017 <- data_2016_2017 %>% filter(data_2016_2017$COD %in% c("X40", "X41", "X42", "X43", "X44", "X60", "X61", "X62",
+                                                                              "X63", "X64", "X85", "Y10", "Y11", "Y12", "Y13", "Y14"))
 table(opioid_death_2016_2017$COD)
 data_ood_2016 <- subset(opioid_death_2016_2017,select = c('fileno','Zip','COD','County', 'State'))
 #data_ood_2016 <- data_ood_2016 %>% filter(State=="PENNSYLVANIA")
@@ -297,17 +299,15 @@ county_total_rx <- county_total_rx %>% group_by(county, state_fip_county_fip) %>
 county_total_rx$cumulative_total_dose <- rescale(county_total_rx$cumulative_total_dose,to=c(0,1))
 ### here county total rx explains the cumulative dose from 2013-2017 administered in each county#############
 #### health determinant covariates###
-health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/SDOH_2017_COUNTY_aqhv.csv')
+health_determinant <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Health Determinant County 2017-2018/SDOH_2017_COUNTY_AHRQ_covariate_Selection.csv')
 health_determinant <- health_determinant %>% filter(STATE=="Pennsylvania")
-health_determinant_covariates <- health_determinant %>% dplyr::select(ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
-                                                                      ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
-                                                                      ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
-health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
-health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
-health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
-health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
-health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
-health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
+selected_variables <- c("ACS_PCT_HU_NO_VEH", "POS_MEAN_DIST_ALC", "ACS_PCT_OTHER_INS", 
+                        "ACS_PCT_LT_HS", "ACS_MEDIAN_HH_INC", "CCBP_BWLSTORES_RATE", 
+                        "CHR_PCT_MENTAL_DISTRESS")
+health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
+health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
+health_determinant_covariates <- health_determinant_covariates %>%
+  mutate(across(selected_variables, ~rescale(.x, to = c(0, 1))))
 ##### creating the data frame ###
 nvss_ood_county_wise_2013_2017 <-Soc.2017
 nvss_ood_county_wise_2013_2017 <- cbind(Soc.2017,county_wise_ood_with_demogrpahic_information)
@@ -326,6 +326,40 @@ colnames(nvss_ood_county_wise_2013_2017)[6] <- "deaths_spatial_porximity"
 colnames(nvss_ood_county_wise_2013_2017)[7] <- "deaths_social_proximity"
 colnames(nvss_ood_county_wise_2013_2017)[8] <- "ODR"
 colnames(nvss_ood_county_wise_2013_2017)[9] <- "Naloxone_Available"
+####  beupromorphine ###
+beupromorphine_2015 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2015.sas7bdat")
+beupromorphine_2016 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2016.sas7bdat")
+beupromorphine_2017 <- read_sas("C:/Users/kusha/Desktop/Data for Paper/buprenorphine_OUD_treatment/buprenorphine_county_2017.sas7bdat")
+beupromorphine_2017 <- beupromorphine_2017[,-2]
+total_beupromorphine <- rbind(beupromorphine_2015,beupromorphine_2016,beupromorphine_2017)
+total_beupromorphine <- total_beupromorphine %>% filter(state_fip_county_fip %in% 
+                                                          nvss_ood_county_wise_2013_2017$GEOID )
+total_beupromorphine  <- total_beupromorphine  %>% group_by(state_fip_county_fip) %>% 
+  summarise( cumulative_total_beupromorphine=mean(total_rx))
+zero_fips_beupromorphine <- setdiff(nvss_ood_county_wise_2013_2017$GEOID,
+                                    total_beupromorphine$state_fip_county_fip)
+zero_fips_beupromorphine_df <- data.frame(state_fip_county_fip="42053", cumulative_total_beupromorphine=0)
+total_beupromorphine <- rbind(total_beupromorphine,zero_fips_beupromorphine_df)
+total_beupromorphine <- total_beupromorphine[order(total_beupromorphine$state_fip_county_fip),]
+colnames(total_beupromorphine)[1] <- "GEOID"
+
+nvss_ood_county_wise_2013_2017 <- left_join(nvss_ood_county_wise_2013_2017, 
+                                            total_beupromorphine, by="GEOID")
+
+#### fentanyl hard coded from the NFLS FILE ###
+fentanyl_2013_PA<- 86
+fentanyl_2014_PA <- 3+1+1+435
+fentanyl_2015_PA <- 193+10+1096+1
+fentanyl_2016_PA <-129+53+1+96+3+11+9+12+2895+269+4+12+13
+fentanyl_2017_PA <- 122+261+247+60+18+35+110+164+9+101+8206+36+421+76+6+9+1+7+2
+St_count_illicit_opioid_reported <- fentanyl_2013_PA+fentanyl_2014_PA+
+  fentanyl_2015_PA+fentanyl_2016_PA+fentanyl_2017_PA
+total_population_PA <- sum(nvss_ood_county_wise_2013_2017$population)
+St_count_illicit_opioid_reported <- St_count_illicit_opioid_reported/total_population_PA
+St_count_illicit_opioid_reported <- data.frame(rep(1:67), St_count_illicit_opioid_reported)
+nvss_ood_county_wise_2013_2017$St_count_illicit_opioid_reported <- St_count_illicit_opioid_reported$St_count_illicit_opioid_reported
+
+
 
 write.csv(nvss_ood_county_wise_2013_2017,'nvss_ood_county_wise_2013_2017.csv')
 
@@ -334,15 +368,28 @@ write.csv(nvss_ood_county_wise_2013_2017,'nvss_ood_county_wise_2013_2017.csv')
 nvss_ood_county_wise_2013_2017$GEOID <- as.factor(nvss_ood_county_wise_2013_2017$GEOID)
 
 library(MASS)
-summary(nb1 <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity
-                      + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
-                        + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-                      + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
-                      +ODR+ Naloxone_Available, 
+summary(nb1_PA <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity+
+                           ACS_PCT_HU_NO_VEH+POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                           ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE+
+                           CHR_PCT_MENTAL_DISTRESS
+                      + offset(log(population))
+                      +ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
                       data = nvss_ood_county_wise_2013_2017,weights=population,
-                      control = glm.control(maxit = 100)))
+                      control = glm.control(maxit = 2000)))
+
+lm_1_PA <- lm(deaths_per_capita ~ deaths_social_proximity  + deaths_spatial_porximity+
+  ACS_PCT_HU_NO_VEH+POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+  ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE+
+  CHR_PCT_MENTAL_DISTRESS
++ offset(log(population))
++ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
+data = nvss_ood_county_wise_2013_2017,weights=population)
+
+summary(lm_1_PA)
+
 library(stargazer)
-stargazer(nb1)
+stargazer(nb1_PA,type = "latex", 
+          title = "Negative Binomial Model with and without Clustered SE")
 # url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 # sites <- url %>% html_nodes('td') %>% html_text()
 # sites_1 <- sites[8977:9244]
