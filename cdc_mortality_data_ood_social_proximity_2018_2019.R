@@ -221,16 +221,27 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_pr
 ##### ACS_PCT_LT_HS POS_DIST_ALC ACS_PCT_OTHER_INS
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
-health_determinant_covariates <- health_determinant %>% dplyr::select(COUNTYFIPS,ACS_PCT_UNEMPLOY, ACS_PCT_LT_HS,
-                                                                      ACS_PCT_PERSON_INC_BELOW99, ACS_PCT_HU_NO_VEH 
-                                                                      ,POS_MEAN_DIST_ALC,ACS_PCT_OTHER_INS)
-health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
-health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
-health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
-health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
-health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
-health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
+selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
+                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
+                        "AMFAR_MHFAC_RATE")
+health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
+health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
+
+health_determinant_covariates <- health_determinant_covariates %>%
+  mutate(across(-1, ~rescale(.x, to = c(0, 1))))
+
+
+
+         
+
+# health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
+# health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
+# health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
+# health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
+# health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
+# health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
 ##### adding these covariates in cdc_mort_data_fips_wise_death_certificates###
+
 colnames(health_determinant_covariates)[1] <- "GEOID"
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         health_determinant_covariates,by="GEOID")
@@ -458,14 +469,14 @@ colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
 
-cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,19,2:20)]
+cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,21,2:22)]
 
-cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(20)]
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(22)]
 
 #### renaming columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[17] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[18] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[19] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[19] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[20] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[21] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
@@ -489,42 +500,43 @@ write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_2018_2019_cdc_e
 
 #### nbr ###
 library(MASS)
-summary(nb1 <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity
-                      + ACS_PCT_UNEMPLOY  + ACS_PCT_LT_HS +
-                        + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-                      + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + offset(log(population))
+summary(nb1_eastern_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
+                                 ACS_PCT_HU_NO_VEH+
+                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
                       data = cdc_mort_data_fips_wise_death_certificates,weights=population,
                       control = glm.control(maxit = 500)))
 
 # Display coefficients and clustered standard errors
-nb_1_clustered_std_error <- coeftest(nb1,vcov = vcovCL,
+nb_1_clustered_std_error_eastern_us <- coeftest(nb1_eastern_us,vcov = vcovCL,
                                      cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-nb_1_clustered_std_error
+nb_1_clustered_std_error_eastern_us
 
 library(stargazer)
-stargazer(nb1, nb_1_clustered_std_error, type = "latex", 
+stargazer(nb1_eastern_us, nb_1_clustered_std_error_eastern_us, type = "latex", 
           title = "Negative Binomial Model with and without Clustered SE")
 
 
 
 
 #### lm 1#### 
-summary(lm_model <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity
-                       + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
-                       + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-                       + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-                       + ODR + Naloxone_Available+Buprenorphine_Available+
-                         St_count_illicit_opioid_reported, 
+summary(lm_model_eastern_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                    ACS_PCT_HU_NO_VEH+
+                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
                        data = cdc_mort_data_fips_wise_death_certificates, 
                        weights = population))
 
 library(sandwich)
 library(lmtest)
-lm_clustered_error <- coeftest(lm_model, vcov = vcovCL, 
+lm_clustered_error_eastern_us <- coeftest(lm_model_eastern_us , vcov = vcovCL, 
                                cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-lm_clustered_error
-stargazer(lm_model, lm_clustered_error, type = "latex", 
+lm_clustered_error_eastern_us
+stargazer(lm_model_eastern_us, lm_clustered_error_eastern_us, type = "latex", 
           title = "Linear Regression with and without Clustered SE")
 
 
@@ -532,12 +544,12 @@ stargazer(lm_model, lm_clustered_error, type = "latex",
 ################# spatial reg #####
 library(spdep)
 library(spatialreg)
-network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity
-                                              + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
-                                              + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-                                              + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-                                              + ODR + Naloxone_Available+Buprenorphine_Available+
-                                                St_count_illicit_opioid_reported,
+network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                        ACS_PCT_HU_NO_VEH+
+                                        POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                        ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                        +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                        +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
            data=cdc_mort_data_fips_wise_death_certificates,
            listw = lw_1,
            zero.policy = TRUE,
@@ -552,13 +564,12 @@ diag(a_i_j) <- 0
 lw_2 <- mat2listw(a_i_j,style='W')
 
 
-summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + 
-                                                deaths_spatial_proximity
-                                              + ACS_PCT_UNEMPLOY + ACS_PCT_LT_HS
-                                              + ACS_PCT_PERSON_INC_BELOW99 + ACS_PCT_HU_NO_VEH 
-                                              + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS
-                                              + ODR + Naloxone_Available+Buprenorphine_Available+
-                                                St_count_illicit_opioid_reported,
+summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                                ACS_PCT_HU_NO_VEH+
+                                                POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                                ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                                +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                                +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
                                               data=cdc_mort_data_fips_wise_death_certificates,
                                               listw = lw_2,
                                               zero.policy = TRUE,
