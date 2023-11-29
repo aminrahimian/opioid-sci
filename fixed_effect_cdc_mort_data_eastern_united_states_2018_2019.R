@@ -591,13 +591,15 @@ model_felm_eastern_united_states<- felm(deaths_per_capita ~ deaths_social_porxim
                                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
                                          ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
                                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
-                                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported|stnchsxo+year,
+                                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported|GEOID+year,
                                        data=oods_2018_2019,weights = oods_2018_2019$population)
 summary(model_felm_eastern_united_states)
 
 
 
-
+library(stargazer)
+stargazer(model_felm_eastern_united_states, type = "latex", 
+          title = "Eastern United States Two way fixed effect model")
 
 
 
