@@ -25,24 +25,24 @@ cdc_2018_mort_data <- read_sas('C:/Users/kusha/Desktop/Data for Paper/CDC Mortal
 cdc_2019_mort_data <- read_sas('C:/Users/kusha/Desktop/Data for Paper/CDC Mortality Data/mort2019_drugoverdose.sas7bdat')
 cdc_combined_mort_data_2018_2019 <- rbind(cdc_2018_mort_data,cdc_2019_mort_data)
 
-cdc_2018_2019_mort_data_east_america <- cdc_combined_mort_data_2018_2019 %>% filter(stposto %in% c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
-                                                                                                   "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
-                                                                                                   "TN", "KY", "SC", "GA", "AL", "MS", "FL"))
+cdc_2018_2019_mort_data_west_america <- cdc_combined_mort_data_2018_2019 %>% filter(stposto %in% c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
+                                                                                                   "MO","MT","ND","NE","NM","NV","OK", 
+                                                                                                   "OR","SD","TX","UT","WA","WY"))
 
 #### getting fips related information for the eastern states using tidycensus ###
 # Get FIPS codes for all states
-eastern_states <- c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
-                    "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
-                    "TN", "KY", "SC", "GA", "AL", "MS", "FL")
+western_states <- c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
+                    "MO","MT","ND","NE","NM","NV","OK",
+                    "OR","SD","TX","UT","WA","WY")
 Soc.2019 <- get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
-                    state=eastern_states, survey="acs5", geometry = FALSE)
+                    state=western_states, survey="acs5", geometry = FALSE)
 
 Soc.2019<- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
 fips_code <- tidycensus::fips_codes
-fips_code <- fips_code %>% filter(state %in%  c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
-                                                "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
-                                                "TN", "KY", "SC", "GA", "AL", "MS", "FL"))
+fips_code <- fips_code %>% filter(state %in% c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
+                                                "MO","MT","ND","NE","NM","NV","OK",
+                                                "OR","SD","TX","UT","WA","WY"))
 fips_code$GEOID <- paste0(fips_code$state_code, fips_code$county_code)
 
 Soc.2019 <- merge(fips_code,Soc.2019, by="GEOID")
@@ -52,23 +52,23 @@ st_code_st_abb <- unique(st_code_st_abb)
 colnames(st_code_st_abb)[1] <- "stposto"
 ### merging the state_fips_code with cdc_2018_2019_to_get_5_digits_fips_code###
 
-cdc_2018_2019_mort_data_east_america <- left_join(cdc_2018_2019_mort_data_east_america,st_code_st_abb,
+cdc_2018_2019_mort_data_west_america <- left_join(cdc_2018_2019_mort_data_west_america,st_code_st_abb,
                                                   by = "stposto")
-cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>% 
+cdc_2018_2019_mort_data_west_america <- cdc_2018_2019_mort_data_west_america %>% 
   mutate(FullFIPS = paste0(state_code, cntfipso))
 ### reordering the columns###
-cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>%
+cdc_2018_2019_mort_data_west_america <- cdc_2018_2019_mort_data_west_america %>%
   dplyr::select(1, 93, 94, 2:92)
-colnames(cdc_2018_2019_mort_data_east_america)[3] <- "GEOID"
+colnames(cdc_2018_2019_mort_data_west_america)[3] <- "GEOID"
 
-cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>% 
+cdc_2018_2019_mort_data_west_america <- cdc_2018_2019_mort_data_west_america %>% 
   filter(icd10_3 %in% c("X40", "X41", "X42", "X43", "X44", "X60", "X61", "X62",
                         "X63", "X64", "X85", "Y10", "Y11", "Y12", "Y13", "Y14"))
 
 # total_County_available <- cdc_2018_2019_mort_data_east_america %>% group_by(cntfipso) %>% summarise(total_count = n())
 ### fitering the T CODES FOR OPIOID RELATED DEATHS PRIMARY USE CASES THROUGH
 #ICD CODES X40-X44 and R-axis T400-T404, T406, T409########
-cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>% 
+cdc_2018_2019_mort_data_west_america <- cdc_2018_2019_mort_data_west_america%>% 
   filter(
     RAXIS2 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
       RAXIS3 %in% c('T400','T401', 'T402', 'T403', 'T404','T406') |
@@ -91,10 +91,21 @@ cdc_2018_2019_mort_data_east_america <- cdc_2018_2019_mort_data_east_america %>%
       RAXIS20 %in% c('T400','T401', 'T402', 'T403', 'T404','T406')
   )
 ### to get the count of deaths in each county ###
-cdc_mort_data_fips_wise_death_certificates <- cdc_2018_2019_mort_data_east_america  %>% 
+cdc_mort_data_fips_wise_death_certificates <- cdc_2018_2019_mort_data_west_america %>% 
   group_by(stnchsxo,GEOID) %>% summarise(total_count = n())
-## the filtered data show OOD counts for 62 counties we have missing fips data for 5 counties ####
 # Find GEOIDs that are in soc.2019 but not in cdc_mort_data_fips_wise_death_certificates
+### GETTING DEATHS IN THE 46102 AND 46113
+oods_in_county_46102 <- cdc_mort_data_fips_wise_death_certificates %>% 
+  dplyr::filter(GEOID == "46102")
+oods_in_county_46113 <- cdc_mort_data_fips_wise_death_certificates %>% 
+  dplyr::filter(GEOID == "46113")
+### REMOVING 46113 ## 
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>%
+  filter(GEOID != "46113")
+#### updating it by the count OF 46113 fir 46102@@@
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>%
+  mutate(total_count = ifelse(GEOID == "46102", 2, total_count))
+
 
 # Now try the setdiff() function again
 missing_GEOIDs <- setdiff(Soc.2019$GEOID, cdc_mort_data_fips_wise_death_certificates$GEOID)
@@ -118,17 +129,17 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "population"
 ### getting the lat and lng for counties###
 ### getting the shapefile for US counties using SF package####
 counties <- counties(cb = TRUE, class = "sf")
-east_american_fips_vector <- cdc_mort_data_fips_wise_death_certificates[order(cdc_mort_data_fips_wise_death_certificates$GEOID),]
-east_american_fips_vector <- east_american_fips_vector$GEOID
+west_american_fips_vector <- cdc_mort_data_fips_wise_death_certificates[order(cdc_mort_data_fips_wise_death_certificates$GEOID),]
+west_american_fips_vector<- west_american_fips_vector$GEOID
 ### filtering the east_american_fips_Vector from counties###
-selected_counties <- counties[counties$GEOID %in% east_american_fips_vector, ]
+selected_counties <- counties[counties$GEOID %in% west_american_fips_vector, ]
 #### getting the centroids ###
 centroids <- st_centroid(selected_counties)
 centroids <- centroids[order(centroids$GEOID ),]
 coords <- st_coordinates(centroids)
 ### getting the lat lng ###
 geoid_lat_lng<- data.frame(
-  GEOID = east_american_fips_vector,
+  GEOID = west_american_fips_vector,
   Longitude = coords[,1],
   Latitude = coords[,2]
 )
@@ -138,7 +149,6 @@ cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_
 ### calculating deaths per capita using mutate function #####
 cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>% 
   mutate(deaths_per_capita=total_count/population)
-
 #### calculating deaths social proximity #####
 ### first creating a data frame that only contains geoid,population and deaths_per_capita###
 social_df <- cdc_mort_data_fips_wise_death_certificates[,c(2,4,7)]
@@ -168,6 +178,8 @@ cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_
 ####storing the matrix weight spatial format ###
 w_i_j <- as.matrix(cumulative_sci_weighted_test)
 diag(w_i_j) <- 0
+#write.csv(w_i_j,'social_proximity.csv')
+lw_1_entire_us <- mat2listw(w_i_j, style='W')
 #### further calculating s_{-i}
 v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
@@ -206,6 +218,7 @@ a_i_j <- as.matrix(a_i_j)
 # Normalize a_i_j
 normalised_scale <- rowSums(a_i_j)
 a_i_j <- a_i_j / normalised_scale
+#(a_i_j,'spatial_proximity.csv')
 
 # Perform matrix multiplication for deaths in spatial proximity ###
 d_minus_i <- a_i_j %*% y
@@ -215,9 +228,7 @@ cdc_mort_data_fips_wise_death_certificates <- cbind(cdc_mort_data_fips_wise_deat
 colnames(cdc_mort_data_fips_wise_death_certificates)[8] <- "deaths_in_social_proximity"
 cdc_mort_data_fips_wise_death_certificates <- cbind(cdc_mort_data_fips_wise_death_certificates,d_minus_i)
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_proximity"
-#### SDOH countywise##########
-### VARIABLES TO EXTRACT: ACS_PCT_UNEMPLOY,ACS_PCT_PERSON_INC_BELOW99,ACS _PCT_HU_NO _VEH 
-##### ACS_PCT_LT_HS POS_DIST_ALC ACS_PCT_OTHER_INS
+
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
 selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
@@ -229,18 +240,7 @@ health_determinant_covariates <- health_determinant_covariates %>% replace(is.na
 health_determinant_covariates <- health_determinant_covariates %>%
   mutate(across(-1, ~rescale(.x, to = c(0, 1))))
 
-
-
-
-
-# health_determinant_covariates$ACS_PCT_UNEMPLOY <- rescale(health_determinant_covariates$ACS_PCT_UNEMPLOY, to=c(0,1))
-# health_determinant_covariates$ACS_PCT_LT_HS <- rescale(health_determinant_covariates$ACS_PCT_LT_HS, to=c(0,1))
-# health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99 <- rescale(health_determinant_covariates$ACS_PCT_PERSON_INC_BELOW99,to=c(0,1))
-# health_determinant_covariates$ACS_PCT_HU_NO_VEH <- rescale(health_determinant_covariates$ACS_PCT_HU_NO_VEH, to=c(0,1))
-# health_determinant_covariates$POS_MEAN_DIST_ALC <- rescale(health_determinant_covariates$POS_MEAN_DIST_ALC, to=c(0,1))
-# health_determinant_covariates$ACS_PCT_OTHER_INS <- rescale(health_determinant_covariates$ACS_PCT_OTHER_INS, to=c(0,1))
 ##### adding these covariates in cdc_mort_data_fips_wise_death_certificates###
-
 colnames(health_determinant_covariates)[1] <- "GEOID"
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         health_determinant_covariates,by="GEOID")
@@ -319,7 +319,8 @@ cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_cert
   mutate(cumulative_total_beupromorphine= cumulative_total_beupromorphine/population)
 cdc_mort_data_fips_wise_death_certificates$cumulative_total_beupromorphine <- rescale(cdc_mort_data_fips_wise_death_certificates$cumulative_total_beupromorphine,
                                                                                       cumulative_total_dose=c(0,1))
-##### fentanyl count state wise ####
+
+#### fentanyl ####
 
 fentanyl_2018 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NFLIS Data tables/NFLIS Data tables/2018NFLISWebsiteTable3_for_analysis.csv')
 ### slicing the data to get states and the related drugs
@@ -444,9 +445,11 @@ colnames(total_fentanyl_2019_us)[2] <- "2019_total_cumulative_total_fentanyl"
 total_fentanyl_2018_2019_US <- left_join(total_fentanyl_2018_us,total_fentanyl_2019_us,by="State")
 total_fentanyl_2018_2019_US$cumulative_2018_2019_fentanyl <- total_fentanyl_2018_2019_US[,2]+total_fentanyl_2018_2019_US[,3]
 total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US[-c(2,12),]
-#### getting population for states ####
+
+####state population####
 state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
 colnames(state_population)[1] <- "State"
+
 #### adding population to the data set ####
 total_fentanyl_2018_2019_US <- left_join(total_fentanyl_2018_2019_US,state_population,by="State")
 total_fentanyl_2018_2019_US[8,5] <- 692683
@@ -460,11 +463,11 @@ state_fentanyl_count_per_capita[8,1] <- "District of Columbia"
 #### getting abbrevations for each state to merge it with cdc_mort_Data##
 state_name_and_abrevations <- fips_code %>% distinct(state, state_name)
 colnames(state_name_and_abrevations)[2] <- "State"
-state_fentanyl_count_per_capita <- left_join(state_fentanyl_count_per_capita, state_name_and_abrevations, by="State")
+state_fentanyl_count_per_capita <- left_join(state_fentanyl_count_per_capita, 
+                                             state_name_and_abrevations, by="State")
 
 colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
 
-#### adding fentanyl count per capita to the data ##
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
 
@@ -480,22 +483,22 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
 
-#### last pre processing ###
-# FIPS codes to update
-fips_to_update <- c("36005", "36047", "36061", "36081", "36085")
 
-# Update stnchsxo to "NY" and St_count_illicit_opioid_reported to 4.179372e-05 for the specified FIPS codes
-cdc_mort_data_fips_wise_death_certificates$stnchsxo[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- "NY"
-cdc_mort_data_fips_wise_death_certificates$St_count_illicit_opioid_reported[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- 4.179372e-05
+#### linear model ###
+summary(lm_model_western_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                   ACS_PCT_HU_NO_VEH+
+                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
+                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+                                 data = cdc_mort_data_fips_wise_death_certificates, 
+                                 weights = population))
+library(sandwich)
+library(lmtest)
+lm_model_western_us  <- coeftest(lm_model_western_us , vcov = vcovCL, 
+                                         cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+lm_model_western_us 
 
-
-#### scale population####
-cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_fips_wise_death_certificates$population, 
-                                                                 to=c(0,1))
-
-
-#write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_2018_2019_cdc_eastern_united_states.csv')
-################### 2 stage least squares ####
 X_n  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
 # Assuming X_n is your matrix of exogenous variables
 # Assuming X_n is your variable matrix (which should be defined similar to the way w_i_j and a_i_j are defined)
@@ -525,27 +528,7 @@ d_i <- cdc_mort_data_fips_wise_death_certificates$deaths_spatial_proximity
 # and the endogenous spatial lags (s_i and d_i)
 # The | symbol separates the model variables from the instruments in Q_n
 # Fit the SARAR(2,1) model using ivreg
-sarar_ivreg_model_eastern_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n,weights = population)
+sarar_ivreg_model_western_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n,weights = population)
 
-# Check the summary of the SARAR model estimated by ivreg
-summary(sarar_ivreg_model_eastern_america,diagnostics = TRUE)
-
-# The first-stage F-statistics
-first_stage_s_i <- lm(s_i ~ Q_n)
-first_stage_d_i <- lm(d_i ~ Q_n)
-
-# Check the F-statistics
-f_statistic_s_i <- summary(first_stage_s_i)$fstatistic
-f_statistic_d_i <- summary(first_stage_d_i)$fstatistic
-
-# Print the F-statistics
-print(f_statistic_s_i)
-print(f_statistic_d_i)
-
-residuals <- residuals(sarar_ivreg_model_eastern_america)
-
-# Create a Q-Q plot
-qqnorm(residuals)
-qqline(residuals, col = "red")  # A
-
+summary(sarar_ivreg_model_western_america,diagnostics = TRUE)
 
