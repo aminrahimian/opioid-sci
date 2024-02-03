@@ -7,14 +7,15 @@ This project offers a collection of R scripts designed to estimate the effect si
 
 ## model execution 
 ### linear model
-$$
+$
 y_i = \beta_0 + \beta_1 s_{-i} + \beta_2 d_{-i} + \overline{\beta_3}^T \overline{C}_i+ \overline{\beta_4}^T \overline{X}_i + \epsilon_i
-$$
+$
+
 The primary variables of interests deaths in social proximity and deaths in spatial proximity are defined as follows
-$$s_{-i} = \sum_{j\neq i} w_{ij}y_{j},\; \text{and} \; d_{-i} =\sum_j a_{ij}y_{j},$$
+$s_{-i} = \sum_{j\neq i} w_{ij}y_{j},\; \text{and} \; d_{-i} =\sum_j a_{ij}y_{j},$
 where social and spatial proximity weights are,
-$$w_{ij} = \frac{n_{j}\text{SCI}_{ij}}{\sum_{k\neq i} n_{k} \text{SCI}_{ik}}, \; \text{and} \;     
-a_{ij} = \frac{1 + \frac{1}{d_{ij}}}{\sum_{k \neq i} (1 + \frac{1}{d_{ik}})}.$$
+$w_{ij} = \frac{n_{j}\text{SCI}_{ij}}{\sum_{k\neq i} n_{k} \text{SCI}_{ik}}, \; \text{and} \;     
+a_{ij} = \frac{1 + \frac{1}{d_{ij}}}{\sum_{k \neq i} (1 + \frac{1}{d_{ik}})}.$
 
 In the linear model $\overline{C}_i$ and $\overline{X}_i$ denotes the vector for clinical and socioeconomic covariates which acts as a control in our model. 
 
