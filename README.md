@@ -29,8 +29,8 @@ In the linear model $\overline{C}_i$ and $\overline{X}_i$ denotes the vector for
 The diagram shows the data pipeline for OOD, along with the streams for the primary variable of interests $s_{-i}$ and $d_{-i}$, representing the relevant socioeconomic and clinical covariates, respectively. 
 
 ## visualization
-
-* The confidence interval plots are generated from the r-script "coefficient plot for models". The script also entails the regression tables.
+* Exploratory maps are generated from the R scrpit "county_county_analysis_2013_2017_aggregate"
+* The confidence interval plots and scatter plot matrix are generated from the r-script "coefficient_plot_for_models". The script also entails the regression tables.
 
 
 
