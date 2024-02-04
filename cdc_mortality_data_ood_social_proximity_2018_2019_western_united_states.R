@@ -499,21 +499,26 @@ lm_model_western_us  <- coeftest(lm_model_western_us , vcov = vcovCL,
                                          cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
 lm_model_western_us 
 
-X_n  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
+
+#### g2sls##
+X_n_west  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
 # Assuming X_n is your matrix of exogenous variables
 # Assuming X_n is your variable matrix (which should be defined similar to the way w_i_j and a_i_j are defined)
 # You need to compute the following matrices:
-W1n_squared <- w_i_j %*% w_i_j  # This is W_{1n}^2
+W1n_squared <- w_i_j %*% w_i_j# This is W_{1n}^2
+W2n_squared <- a_i_j %*% a_i_j
 W2n_W1n <- a_i_j %*% w_i_j      # This is W_{2n} W_{1n}
-
+W1n_W2n <- w_i_j %*% a_i_j
 # Now, you need to calculate the instrument variables by multiplying these weights by X_n
 IV_W1n_Xn <- w_i_j %*% X_n      # This is W_{1n} X_n
 IV_W2n_Xn <- a_i_j %*% X_n      # This is W_{2n} X_n
 IV_W1n_squared_Xn <- W1n_squared %*% X_n  # This is W_{1n}^2 X_n
+IV_W2n_squared_Xn <- W2n_squared %*% X_n #This is W_{2n}^2 X_n
+IV_W1n_W2n_Xn <- W1n_W2n %*% X_n         # # This is W_{1n} W_{1n} X_n
 IV_W2n_W1n_Xn <- W2n_W1n %*% X_n          # This is W_{2n} W_{1n} X_n
 
 # Combine all instrument variables to create the IV matrix for SARAR(2,1)
-Q_n <- cbind(X_n, IV_W1n_Xn, IV_W2n_Xn, IV_W1n_squared_Xn, IV_W2n_W1n_Xn)
+Q_n <- cbind(X_n, IV_W1n_Xn, IV_W2n_Xn, IV_W1n_squared_Xn, IV_W2n_squared_Xn,IV_W1n_W2n_Xn,IV_W2n_W1n_Xn)
 
 library("ivreg")  # For ivreg
 
@@ -528,7 +533,11 @@ d_i <- cdc_mort_data_fips_wise_death_certificates$deaths_spatial_proximity
 # and the endogenous spatial lags (s_i and d_i)
 # The | symbol separates the model variables from the instruments in Q_n
 # Fit the SARAR(2,1) model using ivreg
-sarar_ivreg_model_western_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n,weights = population)
+sarar_ivreg_model_western_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n, weight=population)
+summary(sarar_ivreg_model_western_america)
+coeftest(sarar_ivreg_model_western_america,vcov. = vcovHAC(sarar_ivreg_model_western_america))
 
-summary(sarar_ivreg_model_western_america,diagnostics = TRUE)
+
+
+
 
