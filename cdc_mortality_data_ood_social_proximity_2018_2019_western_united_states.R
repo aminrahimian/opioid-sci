@@ -501,10 +501,13 @@ library(lmtest)
 lm_model_western_us  <- coeftest(lm_model_western_us , vcov = vcovCL, 
                                  cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
 lm_model_western_us 
+### write.csv a_i_j and w_i_j
+write.csv(w_i_j,'w_i_j_western.csv')
+write.csv(a_i_j,'a_i_j_western.csv')
 
 
 #### g2sls##
-X_n_west  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
+X_n  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
 # Assuming X_n is your matrix of exogenous variables
 # Assuming X_n is your variable matrix (which should be defined similar to the way w_i_j and a_i_j are defined)
 # You need to compute the following matrices:
