@@ -168,7 +168,7 @@ cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_
 ####storing the matrix weight spatial format ###
 w_i_j <- as.matrix(cumulative_sci_weighted_test)
 diag(w_i_j) <- 0
-lw_1 <- mat2listw(w_i_j)
+lw_1_eastern_united_states <- mat2listw(w_i_j)
 #### further calculating s_{-i}
 v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
@@ -551,7 +551,7 @@ network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximit
                                         +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
                                         +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
            data=cdc_mort_data_fips_wise_death_certificates,
-           listw = lw_1,
+           listw = lw_1_eastern_united_states,
            zero.policy = TRUE,
            na.action = na.omit,
            tol.solve = 1*exp(-50)
@@ -561,7 +561,10 @@ network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximit
 
 ####storing the distance matrix weight spatial format ###
 diag(a_i_j) <- 0
-lw_2 <- mat2listw(a_i_j,style='W')
+lw_2_eastern_united_states <- mat2listw(a_i_j,style='W')
+saveRDS(lw_1_eastern_united_states, file="lw_1_eastern_us.rds")
+saveRDS(lw_2_eastern_united_states, file="lw_2_eastern_us.rds")
+
 
 
 summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
@@ -609,6 +612,8 @@ chart.Correlation(selected_vars, histogram = TRUE, method = "pearson")
 
 write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_easter_united_states_2018_2019.csv')
 
+write.csv(w_i_j,'w_i_j_eastern.csv')
+write.csv(a_i_j,'a_i_j_eastern.csv')
 
 
 
