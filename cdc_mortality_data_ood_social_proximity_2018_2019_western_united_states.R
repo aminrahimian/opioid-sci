@@ -41,8 +41,8 @@ Soc.2019<- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
 fips_code <- tidycensus::fips_codes
 fips_code <- fips_code %>% filter(state %in% c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
-                                                "MO","MT","ND","NE","NM","NV","OK",
-                                                "OR","SD","TX","UT","WA","WY"))
+                                               "MO","MT","ND","NE","NM","NV","OK",
+                                               "OR","SD","TX","UT","WA","WY"))
 fips_code$GEOID <- paste0(fips_code$state_code, fips_code$county_code)
 
 Soc.2019 <- merge(fips_code,Soc.2019, by="GEOID")
@@ -484,19 +484,22 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porxim
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
 
 
+#### write csv ###
+write.csv(cdc_mort_data_fips_wise_death_certificates, "western_united_stated_mort_data.csv")
+
 #### linear model ###
 summary(lm_model_western_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                   ACS_PCT_HU_NO_VEH+
-                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
-                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                                 data = cdc_mort_data_fips_wise_death_certificates, 
-                                 weights = population))
+                                    ACS_PCT_HU_NO_VEH+
+                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
+                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+                                  data = cdc_mort_data_fips_wise_death_certificates, 
+                                  weights = population))
 library(sandwich)
 library(lmtest)
 lm_model_western_us  <- coeftest(lm_model_western_us , vcov = vcovCL, 
-                                         cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+                                 cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
 lm_model_western_us 
 
 
@@ -536,8 +539,4 @@ d_i <- cdc_mort_data_fips_wise_death_certificates$deaths_spatial_proximity
 sarar_ivreg_model_western_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n, weight=population)
 summary(sarar_ivreg_model_western_america)
 coeftest(sarar_ivreg_model_western_america,vcov. = vcovHAC(sarar_ivreg_model_western_america))
-
-
-
-
 
