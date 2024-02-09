@@ -227,30 +227,6 @@ print(my_plot_2)
 
 
 
-#### main paper plot nbr###
-my_plot_3 <- modelplot(list(nb_1_clustered_std_error_eastern_us,nb_1_clustered_std_error_entire_us),
-                       coef_omit = c(-2,-3))
-
-# Modify the plot
-my_plot_3 <- my_plot_3 + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
-my_plot_3
-
-my_plot_3 <- my_plot_3 + 
-  labs(color = "Model Type") +
-  scale_color_manual(labels = c("clusterd_robust_std_error_nbr_eastern_us",
-                                "clusterd_robust_std_error_nbr_entire_us",
-                                "spatial_autocorrelation",
-                                "two_way_fixed_effect"),values = c("#e41a1c", "#377eb8")) 
-
-print(my_plot_3)
-
-
 #### correlation chart ###
 library(ggplot2)
 library(GGally)
@@ -272,4 +248,391 @@ ggpairs(df_selected,
         diag = list(continuous = wrap("barDiag", fill="red", bins=10)),
         upper = list(continuous = wrap("smooth", method = "lm", color="red", fullrange = TRUE)))+
   theme_minimal()
+
+## g2sls 
+### east vs west ####
+### west ####
+cdc_mort_data_fips_wise_death_certificates_western_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/western_united_stated_mort_data.csv')
+cdc_mort_data_fips_wise_death_certificates_western_us <- cdc_mort_data_fips_wise_death_certificates_western_us[,-1]
+
+w_i_j_western <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/w_i_j_western.csv')
+w_i_j_western <- w_i_j_western[,-1]
+w_i_j_western <- as.matrix(w_i_j_western)
+
+lw_1_western_us <- mat2listw(w_i_j_western, style='W')
+
+a_i_j_western <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/a_i_j_western.csv')
+a_i_j_western <- a_i_j_western[,-1]
+a_i_j_western <- as.matrix(a_i_j_western)
+lw_2_western_us <- mat2listw(a_i_j_western, style='W')
+
+### linear regression ####
+min_population_west <- min(cdc_mort_data_fips_wise_death_certificates_western_us$population)
+max_population_west <- max(cdc_mort_data_fips_wise_death_certificates_western_us$population)
+
+scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us$population - min_population_west) / (max_population_west - min_population_west)
+
+
+lm_western <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                   ACS_PCT_HU_NO_VEH+
+                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                   +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,data =cdc_mort_data_fips_wise_death_certificates_western_us, weight=scaled_population_west )
+
+
+summary(lm_western)
+
+lm_western_clustered_std_error <- coeftest(lm_western,vcov = vcovCL,
+                                           cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
+lm_western_clustered_std_error
+
+
+
+#### network autocorrelation ####
+network_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                                   ACS_PCT_HU_NO_VEH+
+                                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                                   +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
+                                                 data= cdc_mort_data_fips_wise_death_certificates_western_us,
+                                                 listw = lw_1_western_us,
+                                                 zero.policy = TRUE,
+                                                 na.action = na.omit,
+                                                 tol.solve = 1*exp(-50)
+)
+
+summary(network_autocorrelation_western_us)
+#### spatial autocorrelation ####
+summary(spatial_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                                           ACS_PCT_HU_NO_VEH+
+                                                           POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                                           ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                                           +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                                           +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
+                                                         data= cdc_mort_data_fips_wise_death_certificates_western_us,
+                                                         listw = lw_2_western_us,
+                                                         zero.policy = TRUE,
+                                                         na.action = na.omit,
+                                                         tol.solve = 1*exp(-50)
+))
+
+
+##### two way fixed effect ####
+oods_2018_2019_western_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/panel_western.csv')
+model_felm_western_united_states <- felm(deaths_per_capita ~ ACS_PCT_HU_NO_VEH+deaths_social_porximity 
+                                        +deaths_spatial_proximity
+                                        +
+                                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                          ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
+                                        +ODR+ Naloxone_Available 
+                                        +Buprenorphine_Available+St_count_illicit_opioid_reported|GEOID+year,
+                                        data=oods_2018_2019_western_united_states,weights = oods_2018_2019_western_united_states$population)
+summary(model_felm_western_united_states)
+
+#### g2sls##
+X_n_western  <- as.matrix(cdc_mort_data_fips_wise_death_certificates_western_us[,c(11:22)])
+
+# Compute the matrices
+W1n_squared_western <- w_i_j_western %*% w_i_j_western # This is W_{1n}^2
+W2n_squared_western <- a_i_j_western %*% a_i_j_western # This is W_{2n}^2
+W2n_W1n_western <- a_i_j_western %*% w_i_j_western     # This is W_{2n} W_{1n}
+W1n_W2n_western <- w_i_j_western %*% a_i_j_western     # This is W_{1n} W_{2n}
+
+# Calculate the instrument variables
+IV_W1n_Xn_western <- w_i_j_western %*% X_n_western     # This is W_{1n} X_n
+IV_W2n_Xn_western <- a_i_j_western %*% X_n_western     # This is W_{2n} X_n
+IV_W1n_squared_Xn_western <- W1n_squared_western %*% X_n_western  # This is W_{1n}^2 X_n
+IV_W2n_squared_Xn_western <- W2n_squared_western %*% X_n_western  # This is W_{2n}^2 X_n
+IV_W1n_W2n_Xn_western <- W1n_W2n_western %*% X_n_western          # This is W_{1n} W_{2n} X_n
+IV_W2n_W1n_Xn_western <- W2n_W1n_western %*% X_n_western          # This is W_{2n} W_{1n} X_n
+
+# Combine all instrument variables to create the IV matrix for SARAR(2,1)
+Q_n_western <- cbind(X_n_western, IV_W1n_Xn_western, IV_W2n_Xn_western, IV_W1n_squared_Xn_western, IV_W2n_squared_Xn_western, IV_W1n_W2n_Xn_western, IV_W2n_W1n_Xn_western)
+
+
+library("ivreg")  # For ivreg
+
+# Given that you already have the matrix X_n, and w_i_j (W1), a_i_j (W2) weights matrices,
+# and the instrument matrix Q_n, you would proceed as follows:
+# Define the formula for ivreg
+# The dependent variable y is regressed on the exogenous variables (X_n),
+# and the endogenous spatial lags (s_i and d_i)
+# The | symbol separates the model variables from the instruments in Q_n
+# Fit the SARAR(2,1) model using ivreg
+# Assuming 'population' is your vector of population values
+min_population_west <- min(cdc_mort_data_fips_wise_death_certificates_western_us$population)
+max_population_west <- max(cdc_mort_data_fips_wise_death_certificates_western_us$population)
+
+scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us$population - min_population_west) / (max_population_west - min_population_west)
+
+##### western plot ####
+lm_western <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                   ACS_PCT_HU_NO_VEH+
+                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                   +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,data =cdc_mort_data_fips_wise_death_certificates_western_us, weight=scaled_population_west )
+
+
+summary(lm_western)
+
+lm_western_clustered_std_error <- coeftest(lm_western,vcov = vcovCL,
+                                                cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
+lm_western_clustered_std_error
+
+my_plot_lm_west <- modelplot(list(lm_western,lm_western_clustered_std_error),coef_omit =c(-2,-3),
+                       draw = TRUE)
+
+
+library(MASS)
+summary(nb_1_western_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
+                                   ACS_PCT_HU_NO_VEH+
+                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
+                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+                                 data = cdc_mort_data_fips_wise_death_certificates_western_us,weights=scaled_population_west,
+                                 control = glm.control(maxit = 1000)))
+#### negative binomial regression ####
+nb_1_clustered_std_error_western_us <- coeftest(nb_1_western_us,vcov = vcovCL,
+                                               cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
+nb_1_clustered_std_error_western_us
+
+stargazer(nb_1_western_us,nb_1_clustered_std_error_western_us, type = "latex", 
+          title = "NBR")
+
+
+
+#### main paper plot nbr###
+my_plot_west <- modelplot(list(lm_western_clustered_std_error,
+                               network_autocorrelation_western_us,
+                            spatial_autocorrelation_western_us,
+                            model_felm_western_united_states),
+                       coef_omit = c(-2,-3))
+
+
+my_plot_west <- my_plot_west + 
+  theme(panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.background = element_blank(),   # Remove panel background
+        axis.line = element_blank(),          # Remove axis lines
+        axis.ticks = element_blank()) +       # Remove axis ticks
+  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+
+
+my_plot_west <- my_plot_west + 
+  labs(color = "Model Type") +
+  scale_color_manual(labels = c("cluster_robust_std_error_lm",
+                                "network_autocorrelation",
+                                "spatial_autocorrelation",
+                                "two_way_fixed_effect"),values = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3")) # replace #colorN with actual color codes or names
+
+print(my_plot_west)
+
+
+# Modify the plot
+my_plot_lm_west <- my_plot_lm_west + 
+  theme(panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.background = element_blank(),   # Remove panel background
+        axis.line = element_blank(),          # Remove axis lines
+        axis.ticks = element_blank()) +       # Remove axis ticks
+  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+
+
+my_plot_lm_west <- my_plot_lm_west + 
+  labs(color = "Model Type") +
+  scale_color_manual(labels = c("linear regression","cluster robust linear regression"),values = c("#e41a1c","#377eb8"))
+
+my_plot_lm_west
+
+stargazer(eu,wu,eu_entire_us, type = "latex", 
+          title = "G2SLS")
+
+
+# Now use the scaled_population in your ivreg model
+sarar_ivreg_model_western_america <- ivreg::ivreg(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                                    ACS_PCT_HU_NO_VEH+
+                                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                                    +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported  | Q_n_western, weight=scaled_population_west, data =cdc_mort_data_fips_wise_death_certificates_western_us )
+summary(sarar_ivreg_model_western_america)
+wu <- coeftest(sarar_ivreg_model_western_america,vcov. = vcovHAC(sarar_ivreg_model_western_america))
+wu
+### east ###
+# Reading and preprocessing data for Eastern US
+cdc_mort_data_fips_wise_death_certificates_eastern_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/mort_data_2018_2019_cdc_eastern_united_states.csv')
+cdc_mort_data_fips_wise_death_certificates_eastern_us <- cdc_mort_data_fips_wise_death_certificates_eastern_us[,-1]
+
+w_i_j_eastern <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/w_i_j_eastern.csv')
+w_i_j_eastern <- w_i_j_eastern[,-1]
+w_i_j_eastern <- as.matrix(w_i_j_eastern)
+
+a_i_j_eastern <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/a_i_j_eastern.csv')
+a_i_j_eastern <- a_i_j_eastern[,-1]
+a_i_j_eastern <- as.matrix(a_i_j_eastern)
+
+# Creating the variable matrix for Eastern US
+X_n_eastern <- as.matrix(cdc_mort_data_fips_wise_death_certificates_eastern_us[,c(11:22)])
+
+# Compute the matrices for Eastern US
+W1n_squared_eastern <- w_i_j_eastern %*% w_i_j_eastern # This is W_{1n}^2
+W2n_squared_eastern <- a_i_j_eastern %*% a_i_j_eastern # This is W_{2n}^2
+W2n_W1n_eastern <- a_i_j_eastern %*% w_i_j_eastern     # This is W_{2n} W_{1n}
+W1n_W2n_eastern <- w_i_j_eastern %*% a_i_j_eastern     # This is W_{1n} W_{2n}
+
+# Calculate the instrument variables for Eastern US
+IV_W1n_Xn_eastern <- w_i_j_eastern %*% X_n_eastern     # This is W_{1n} X_n
+IV_W2n_Xn_eastern <- a_i_j_eastern %*% X_n_eastern     # This is W_{2n} X_n
+IV_W1n_squared_Xn_eastern <- W1n_squared_eastern %*% X_n_eastern  # This is W_{1n}^2 X_n
+IV_W2n_squared_Xn_eastern <- W2n_squared_eastern %*% X_n_eastern  # This is W_{2n}^2 X_n
+IV_W1n_W2n_Xn_eastern <- W1n_W2n_eastern %*% X_n_eastern          # This is W_{1n} W_{2n} X_n
+IV_W2n_W1n_Xn_eastern <- W2n_W1n_eastern %*% X_n_eastern          # This is W_{2n} W_{1n} X_n
+
+# Combine all instrument variables to create the IV matrix for SARAR(2,1) for Eastern US
+Q_n_eastern <- cbind(X_n_eastern, IV_W1n_Xn_eastern, IV_W2n_Xn_eastern, IV_W1n_squared_Xn_eastern, IV_W2n_squared_Xn_eastern, IV_W1n_W2n_Xn_eastern, IV_W2n_W1n_Xn_eastern)
+
+# Define the formula for ivreg for the Eastern US dataset
+# The dependent variable y is regressed on the exogenous variables (X_n_eastern),
+# and the endogenous spatial lags (s_i_eastern and d_i_eastern)
+# The | symbol separates the model variables from the instruments in Q_n_eastern
+# Fit the SARAR(2,1) model using ivreg
+
+# Scale the population for the Eastern US dataset
+min_population_east <- min(cdc_mort_data_fips_wise_death_certificates_eastern_us$population)
+max_population_east <- max(cdc_mort_data_fips_wise_death_certificates_eastern_us$population)
+
+scaled_population_east <- (cdc_mort_data_fips_wise_death_certificates_eastern_us$population - min_population_east) / (max_population_east - min_population_east)
+
+# Now use the scaled_population in your ivreg model for the Eastern US dataset
+sarar_ivreg_model_eastern_america <- ivreg::ivreg(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+                                                    ACS_PCT_HU_NO_VEH+
+                                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+                                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+                                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+                                                    +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported| Q_n_eastern, weight=scaled_population_east, data = cdc_mort_data_fips_wise_death_certificates_eastern_us)
+# Output the summary and coefficient test for the Eastern US model
+summary(sarar_ivreg_model_eastern_america)
+eu <- coeftest(sarar_ivreg_model_eastern_america, vcov. = vcovHAC(sarar_ivreg_model_eastern_america))
+eu
+#### east vs west CI
+my_plot_4 <- modelplot(list(eu,wu),coef_omit =c(-2,-3),
+                     draw = TRUE)
+# Modify the plot
+my_plot_4 <- my_plot_4 + 
+  theme(panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.background = element_blank(),   # Remove panel background
+        axis.line = element_blank(),          # Remove axis lines
+        axis.ticks = element_blank()) +       # Remove axis ticks
+  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+
+
+my_plot_4 <- my_plot_4 + 
+  labs(color = "Model Type") +
+  scale_color_manual(labels = c("G2SLS Eastern United States",
+                                "G2SLS Western United States"),values = c("#e41a1c", "#377eb8")) # replace #colorN with actual color codes or names
+
+print(my_plot_4)
+### g2sls entire us ####
+cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
+cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,-1]
+
+w_i_j_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/w_i_j_entire_us.csv')
+w_i_j_us <- w_i_j_us [,-1]
+w_i_j_us <- as.matrix(w_i_j_us)
+
+a_i_j_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/a_i_j_entire_us.csv')
+a_i_j_us <- a_i_j_us[,-1]
+a_i_j_us <- as.matrix(a_i_j_us)
+
+# Creating the variable matrix for Eastern US
+# Assuming the data loading part is already correctly done
+
+# Creating the variable matrix for the entire U.S.
+X_n_us <- as.matrix(cdc_mort_data_fips_wise_death_certificates_entire_us[,c(11:22)])
+
+# Compute the matrices for the entire U.S.
+W1n_squared_us <- w_i_j_us %*% w_i_j_us # This is W_{1n}^2 for the entire U.S.
+W2n_squared_us <- a_i_j_us %*% a_i_j_us # This is W_{2n}^2 for the entire U.S.
+W2n_W1n_us <- a_i_j_us %*% w_i_j_us     # This is W_{2n} W_{1n} for the entire U.S.
+W1n_W2n_us <- w_i_j_us %*% a_i_j_us     # This is W_{1n} W_{2n} for the entire U.S.
+
+# Calculate the instrument variables for the entire U.S.
+IV_W1n_Xn_us <- w_i_j_us %*% X_n_us     # This is W_{1n} X_n for the entire U.S.
+IV_W2n_Xn_us <- a_i_j_us %*% X_n_us     # This is W_{2n} X_n for the entire U.S.
+IV_W1n_squared_Xn_us <- W1n_squared_us %*% X_n_us  # This is W_{1n}^2 X_n for the entire U.S.
+IV_W2n_squared_Xn_us <- W2n_squared_us %*% X_n_us  # This is W_{2n}^2 X_n for the entire U.S.
+IV_W1n_W2n_Xn_us <- W1n_W2n_us %*% X_n_us          # This is W_{1n} W_{2n} X_n for the entire U.S.
+IV_W2n_W1n_Xn_us <- W2n_W1n_us %*% X_n_us          # This is W_{2n} W_{1n} X_n for the entire U.S.
+
+# Combine all instrument variables to create the IV matrix for SARAR(2,1) for the entire U.S.
+Q_n_us <- cbind(X_n_us, IV_W1n_Xn_us, IV_W2n_Xn_us, IV_W1n_squared_Xn_us, IV_W2n_squared_Xn_us, IV_W1n_W2n_Xn_us, IV_W2n_W1n_Xn_us)
+
+####
+# Assuming cdc_mort_data_fips_wise_death_certificates_entire_us is your dataset for the entire U.S.
+
+# Calculate min and max population for the entire U.S.
+min_population_us <- min(cdc_mort_data_fips_wise_death_certificates_entire_us$population)
+max_population_us <- max(cdc_mort_data_fips_wise_death_certificates_entire_us$population)
+
+# Scale the population for the entire U.S.
+scaled_population_us <- (cdc_mort_data_fips_wise_death_certificates_entire_us$population - min_population_us) / (max_population_us - min_population_us)
+
+# Update the ivreg model for the entire U.S. using the scaled population as weights
+sarar_ivreg_model_entire_us <- ivreg::ivreg(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
+                                              ACS_PCT_HU_NO_VEH +
+                                              POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
+                                              ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC +
+                                              CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE +
+                                              ODR + Naloxone_Available + Buprenorphine_Available + St_count_illicit_opioid_reported |
+                                              Q_n_us, weight = scaled_population_us, data = cdc_mort_data_fips_wise_death_certificates_entire_us)
+
+# Output the summary and coefficient test for the entire U.S. model
+summary(sarar_ivreg_model_entire_us)
+eu_entire_us <- coeftest(sarar_ivreg_model_entire_us, vcov. = vcovHAC(sarar_ivreg_model_entire_us))
+eu_entire_us
+
+
+my_plot_5 <- modelplot(list(eu,wu,eu_entire_us),coef_omit =c(-2,-3),
+                       draw = TRUE)
+# Modify the plot
+my_plot_5 <- my_plot_5 + 
+  theme(panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.background = element_blank(),   # Remove panel background
+        axis.line = element_blank(),          # Remove axis lines
+        axis.ticks = element_blank()) +       # Remove axis ticks
+  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+
+
+my_plot_5 <- my_plot_5 + 
+  labs(color = "Model Type") +
+  scale_color_manual(labels = c("G2SLS Eastern United States",
+                                "G2SLS Western United States", "G2SLS United States"),values = c("#e41a1c", "#377eb8","#4daf4a"))
+
+stargazer(eu,wu,eu_entire_us, type = "latex", 
+          title = "G2SLS")
+##### nbr ####
+my_plot_3 <- my_plot_3 + 
+  theme(panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.background = element_blank(),   # Remove panel background
+        axis.line = element_blank(),          # Remove axis lines
+        axis.ticks = element_blank()) +       # Remove axis ticks
+  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+my_plot_3
+
+my_plot_3 <- my_plot_3 + 
+  labs(color = "Model Type") +
+  scale_color_manual(labels = c("clusterd_robust_std_error_nbr_western_us",
+                                "clusterd_robust_std_error_nbr_eastern_us",
+                                "clusterd_robust_std_error_nbr_entire_us"),values = c("#e41a1c", "#377eb8", "#4daf4a")) 
+
+print(my_plot_3)
+
 
