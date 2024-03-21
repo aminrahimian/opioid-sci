@@ -644,7 +644,7 @@ for (year in 2009:2019) {
 # columns from the corresponding sdoh_YEAR data frame, matched according to their respective GEOID and COUNTYFIPS columns.
 
 spatio_temporal_prediction_df <- rbind(ood_2009,ood_2010,ood_2011,ood_2012,ood_2013,ood_2014,ood_2015,ood_2016,ood_2017,ood_2018,ood_2019)
-
+spatio_temporal_prediction_df <- spatio_temporal_prediction_df %>% mutate(ODR=total_dose_sum/Population)
 
 write.csv(spatio_temporal_prediction_df,'prediction_df_2009_2019_PA.csv')
 
