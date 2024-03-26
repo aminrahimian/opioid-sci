@@ -92,7 +92,29 @@ ood_data_2013_2015 <- ood_data_2013_2015 %>%
 
 ood_data_2013_2015 <- ood_data_2013_2015 %>% filter(ood_data_2013_2015$COD %in% c("X40", "X41", "X42", "X43", "X44", "X60", "X61", "X62",
                                                                                   "X63", "X64", "X85", "Y10", "Y11", "Y12", "Y13", "Y14"))
-deaths_in_county_in_2013_2015 <- count(ood_data_2013_2015,county_name)                          
+deaths_in_county_in_2013_2015 <- count(ood_data_2013_2015,county_name)  
+
+pa_counties <- c("ADAMS", "ALLEGHENY", "ARMSTRONG", "BEAVER", "BEDFORD", "BERKS", "BLAIR", 
+                 "BRADFORD", "BUCKS", "BUTLER", "CAMBRIA", "CAMERON", "CARBON", "CENTRE", 
+                 "CHESTER", "CLARION", "CLEARFIELD", "CLINTON", "COLUMBIA", "CRAWFORD", 
+                 "CUMBERLAND", "DAUPHIN", "DELAWARE", "ELK", "ERIE", "FAYETTE", "FOREST", 
+                 "FRANKLIN", "FULTON", "GREENE", "HUNTINGDON", "INDIANA", "JEFFERSON", 
+                 "JUNIATA", "LACKAWANNA", "LANCASTER", "LAWRENCE", "LEBANON", "LEHIGH", 
+                 "LUZERNE", "LYCOMING", "MCKEAN", "MERCER", "MIFFLIN", "MONROE", "MONTGOMERY", 
+                 "MONTOUR", "NORTHAMPTON", "NORTHUMBERLAND", "PERRY", "PHILADELPHIA", 
+                 "PIKE", "POTTER", "SCHUYLKILL", "SNYDER", "SOMERSET", "SULLIVAN", "SUSQUEHANNA", 
+                 "TIOGA", "UNION", "VENANGO", "WARREN", "WASHINGTON", "WAYNE", "WESTMORELAND", 
+                 "WYOMING", "YORK")
+
+deaths_in_county_in_2013_2015 <- deaths_in_county_in_2013_2015 %>% filter(deaths_in_county_in_2013_2015$county_name %in% pa_counties)
+missing_information_about_counties_2013_2015 <- setdiff(pa_counties,deaths_in_county_in_2013_2015$county_name)
+deaths_in_county_in_2013_2015[66,1] <- "CAMERON"
+deaths_in_county_in_2013_2015[66,2] <- 0
+deaths_in_county_in_2013_2015[67,1] <- "SULLIVAN"
+deaths_in_county_in_2013_2015[67,2] <- 0
+
+deaths_in_county_in_2013_2015 <- deaths_in_county_in_2013_2015 %>% arrange(deaths_in_county_in_2013_2015$county_name)
+colnames(deaths_in_county_in_2013_2015)[1] <- "County"
 
 data_2016_2017 <- read.csv('C:/Users/kusha/Desktop/Data for Paper/NVSS Data/Combined_Drug_2016_2017.csv')
 ## This is a private data set of opioid-related deaths in PA that include location and cause 
@@ -113,13 +135,13 @@ county_name <- unique(opioid_incident_data_pa_gov$Incident.County.Name)
 county_name <- toupper(county_name)
 deaths_in_county_in_2016_2017 <- n_ood %>% dplyr::filter(County %in% county_name)
 deaths_in_county_in_2016_2017 [66,1] <- "CAMERON"
-deaths_in_county_in_2016_2017 [66,2] <- 1
+deaths_in_county_in_2016_2017 [66,2] <- 0
 deaths_in_county_in_2016_2017 [67,1] <- "FOREST"
-deaths_in_county_in_2016_2017 [67,2] <- 1
+deaths_in_county_in_2016_2017 [67,2] <- 0
 deaths_in_county_in_2016_2017  <- deaths_in_county_in_2016_2017[order(deaths_in_county_in_2016_2017$County),]
-aggregated_ood_deaths_2013_2017 <- cbind(deaths_in_county_in_2013_2015,deaths_in_county_in_2016_2017 )
-colnames(aggregated_ood_deaths_2013_2017)[2] <- 'deaths_2013_2015'
-aggregated_ood_deaths_2013_2017 <- aggregated_ood_deaths_2013_2017 %>% mutate(n=n+deaths_2013_2015)
+deaths_in_county_in_2016_2017 <- deaths_in_county_in_2016_2017 %>% arrange(deaths_in_county_in_2016_2017$County)
+aggregated_ood_deaths_2013_2017 <- left_join(deaths_in_county_in_2013_2015,deaths_in_county_in_2016_2017, by="County")
+aggregated_ood_deaths_2013_2017 <- aggregated_ood_deaths_2013_2017 %>% mutate(n=n.x+n.y)
 aggregated_ood_deaths_2013_2017 <- aggregated_ood_deaths_2013_2017[,-c(2,3)]
 county_wise_ood_with_demogrpahic_information <- cbind(aggregated_ood_deaths_2013_2017,Soc.2017)
 county_wise_ood_with_demogrpahic_information <- county_wise_ood_with_demogrpahic_information[,-4]
@@ -376,31 +398,29 @@ nvss_ood_county_wise_2013_2017 <- nvss_ood_county_wise_2013_2017[,-21]
 
 write.csv(nvss_ood_county_wise_2013_2017,'nvss_ood_county_wise_2013_2017.csv')
 
-##### nbr####
-# Ensure that GEOID is treated as a factor
-nvss_ood_county_wise_2013_2017$GEOID <- as.factor(nvss_ood_county_wise_2013_2017$GEOID)
 
-library(MASS)
-summary(nb1_PA <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity+ACS_PCT_HU_NO_VEH+
-                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
-                      + offset(log(population))
-                      +ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
-                      data = nvss_ood_county_wise_2013_2017,weights=population,
-                      control = glm.control(maxit = 2000)))
-
-lm_1_PA <- lm(deaths_per_capita ~ deaths_social_proximity  + deaths_spatial_porximity+
-  ACS_PCT_HU_NO_VEH+POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-  ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE
-+ offset(log(population))
-+ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
-data = nvss_ood_county_wise_2013_2017,weights=population)
-
-summary(lm_1_PA)
-
-library(stargazer)
-stargazer(nb1_PA,type = "latex", 
-          title = "Negative Binomial Model with and without Clustered SE")
+# 
+# library(MASS)
+# summary(nb1_PA <- glm.nb(deaths ~ deaths_social_proximity  + deaths_spatial_porximity+ACS_PCT_HU_NO_VEH+
+#                           POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                           +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+#                       + offset(log(population))
+#                       +ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
+#                       data = nvss_ood_county_wise_2013_2017,weights=population,
+#                       control = glm.control(maxit = 2000)))
+# 
+# lm_1_PA <- lm(deaths_per_capita ~ deaths_social_proximity  + deaths_spatial_porximity+
+#   ACS_PCT_HU_NO_VEH+POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#   ACS_PCT_LT_HS+ACS_MEDIAN_HH_INC+CCBP_BWLSTORES_RATE
+# + offset(log(population))
+# +ODR+ Naloxone_Available+cumulative_total_beupromorphine, 
+# data = nvss_ood_county_wise_2013_2017,weights=population)
+# 
+# summary(lm_1_PA)
+# 
+# library(stargazer)
+# stargazer(nb1_PA,type = "latex", 
+#           title = "Negative Binomial Model with and without Clustered SE")
 # url <- read_html('https://www.cdc.gov/drugoverdose/rxrate-maps/county2016.html')
 # sites <- url %>% html_nodes('td') %>% html_text()
 # sites_1 <- sites[8977:9244]
@@ -426,9 +446,9 @@ stargazer(nb1_PA,type = "latex",
 # colnames(illicit_opioid_Seizures_2013_2017)[1] <- "county"
 # colnames(illicit_opioid_Seizures_2013_2017)[2] <- "MME"
 
-nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,df)
-nvss_ood_county_wise_2013_2017$county_deaths_social_proximity <- deaths_social_proximity_county
-nvss_ood_county_wise_2013_2017$county_deaths_spatial_proximity <- deaths_spatial_proximity_county
+# nvss_ood_county_wise_2013_2017 <- cbind(nvss_ood_county_wise_2013_2017,df)
+# nvss_ood_county_wise_2013_2017$county_deaths_social_proximity <- deaths_social_proximity_county
+# nvss_ood_county_wise_2013_2017$county_deaths_spatial_proximity <- deaths_spatial_proximity_county
 # nvss_ood_county_wise_2013_2017$ODR <- ODR$ODR
 # nvss_ood_county_wise_2013_2017$naloxone <- data_naloxone$naloxone_per_capita
 # nvss_ood_county_wise_2013_2017$illicit_drug_seizures_mme_per_county <- illicit_opioid_Seizures_2013_2017$MME
@@ -438,7 +458,7 @@ nvss_ood_county_wise_2013_2017$county_deaths_spatial_proximity <- deaths_spatial
 
 
 ### Multiple Linear regression and Wtd Linear Regression #####
-nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
+nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/2013_2017_PA_Analysis/nvss_ood_county_wise_2013_2017.csv")
 glimpse(nvss_ood_county_wise_2013_2017)
 
 ####### social adjacency map for phili and allegheny###############
@@ -580,24 +600,25 @@ ggplot(data = alle_counties_merged) +
 # Create a color palette for the map
 # Create a color palette for the map
 install.packages(c("leaflet", "sf", "RColorBrewer"))
-library(leaflet)
-library(sf)
-library(RColorBrewer)
-
-penn_counties_sf <- st_as_sf(merged_data)
-# Determine pretty breaks for the color scale
-breaks_pretty <- pretty(penn_counties_sf$scaled_sci, n = 5)
-
-ggplot() +
-  geom_sf(data = penn_counties_sf, aes(fill = scaled_sci),color="black", size = 0.2) +
-  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(1460, 419770), name = "scaled_sci") +
-  theme_minimal() +
-  ggtitle("Phili SCI") +
-  theme(plot.title = element_text(hjust = 0.5))
+# library(leaflet)
+# library(sf)
+# library(RColorBrewer)
+# 
+# penn_counties_sf <- st_as_sf(merged_data)
+# # Determine pretty breaks for the color scale
+# breaks_pretty <- pretty(penn_counties_sf$scaled_sci, n = 5)
+# 
+# ggplot() +
+#   geom_sf(data = penn_counties_sf, aes(fill = scaled_sci),color="black", size = 0.2) +
+#   scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(1460, 419770), name = "scaled_sci") +
+#   theme_minimal() +
+#   ggtitle("Phili SCI") +
+#   theme(plot.title = element_text(hjust = 0.5))
 
 
 ############ map for county deaths per capita############
 library(dplyr)
+nvss_ood_county_wise_2013_2017$GEOID <- as.numeric(nvss_ood_county_wise_2013_2017$GEOID)
 deaths_per_capita <- nvss_ood_county_wise_2013_2017 %>% dplyr::select(GEOID,NAME,deaths,deaths_per_capita)
 deaths_per_capita$GEOID <- as.numeric(deaths_per_capita$GEOID)
 library(sf)
@@ -610,7 +631,7 @@ penn_counties_deaths <- penn_counties %>%
   left_join(deaths_per_capita, by = "GEOID")
 ggplot() +
   geom_sf(data = penn_counties_deaths, aes(fill = deaths_per_capita), color = "black", size = 0.2) +
-  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.008), name = "Deaths per Capita") +
+  scale_fill_viridis_c(option = "viridis", trans = "sqrt", direction = 1, limits = c(0, 0.001825261), name = "Deaths per Capita") +
   theme_minimal() +
   ggtitle("Deaths per Capita by County in Pennsylvania") +
   theme(plot.title = element_text(hjust = 0.5))
