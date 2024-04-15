@@ -192,7 +192,8 @@ cumulative_sci_weighted_test <- cumulative_sci_weighted/row_sums_cumulative_sci_
 ####storing the matrix weight spatial format ###
 w_i_j <- as.matrix(cumulative_sci_weighted_test)
 diag(w_i_j) <- 0
-lw_1 <- mat2listw(w_i_j, style='W')
+#write.csv(w_i_j,'social_proximity.csv')
+lw_1_entire_us <- mat2listw(w_i_j, style='W')
 #### further calculating s_{-i}
 v <- social_df$deaths_per_capita
 for(i in 1:ncol(cumulative_sci_weighted_test)){
@@ -231,6 +232,8 @@ a_i_j <- as.matrix(a_i_j)
 # Normalize a_i_j
 normalised_scale <- rowSums(a_i_j)
 a_i_j <- a_i_j / normalised_scale
+#(a_i_j,'spatial_proximity.csv')
+
 # Perform matrix multiplication for deaths in spatial proximity ###
 d_minus_i <- a_i_j %*% y
 
@@ -244,9 +247,13 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_pr
 ##### ACS_PCT_LT_HS POS_DIST_ALC ACS_PCT_OTHER_INS
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
-selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
-                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
-                        "AMFAR_MHFAC_RATE")
+selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
+                        'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                        'ACS_PCT_LT_HS',
+                        'AHRF_TOT_COM_HEALTH_GRANT',
+                        'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
+                        'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
 
@@ -485,14 +492,14 @@ colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
 
-cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,21,2:22)]
+cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,28,2:29)]
 
-cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(22)]
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(29)]
 
 #### renaming columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[19] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[20] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[21] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[25] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[26] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
@@ -512,6 +519,7 @@ cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_f
                                                                  to=c(0,1))
 
 write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_entire_united_cdc_2018_2019.csv')
+saveRDS(lw_1_entire_us, file="lw_1_entire_us.rds")
 
 
 cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
@@ -539,14 +547,21 @@ stargazer(nb_1_entire_us, nb_1_clustered_std_error_entire_us , type = "latex",
           title = "Negative Binomial Model with and without Clustered SE")
 
 #### linear regression ####
-summary(lm_model_entire_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                   ACS_PCT_HU_NO_VEH+
-                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
-                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                       data = cdc_mort_data_fips_wise_death_certificates, 
-                       weights = population))
+column_names <- names(cdc_mort_data_fips_wise_death_certificates)[11:24]
+
+lm_model_entire_us <- lm(
+  deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
+    ACS_PCT_UNEMPLOY + ODR + Naloxone_Available + Buprenorphine_Available + 
+    St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
+    ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
+    AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_MALE + ACS_PCT_WHITE +
+    ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI, 
+  data = cdc_mort_data_fips_wise_death_certificates, 
+  weights = population
+)
+
+# Summary of the updated model
+summary(lm_model_entire_us)
 
 library(sandwich)
 library(lmtest)
@@ -578,7 +593,13 @@ library(spdep)
  summary(network_autocorrelation)
 # #### spatial ####
  diag(a_i_j) <- 0
- lw_2 <- mat2listw(a_i_j, style='W')
+ write.table(a_i_j, file = "a_i_j.txt", row.names = FALSE, col.names = FALSE)
+ 
+lw_2_entire_us <- mat2listw(a_i_j, style='W')
+write.nb.gal(lw_2_entire_us$neighbours, "wdat.gal")
+
+write.listw(lw_2_entire_us, "spatial_weights.gal")
+ 
  spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
                                          ACS_PCT_HU_NO_VEH+
                                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
