@@ -537,9 +537,13 @@ oods_2019 <- left_join(oods_2019,total_fentanyl_2019_us, "stnchsxo")
 ##### ADDING SDOH COVARIATES ######
 sdoh_2018 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2018_COUNTY.xlsx")
 health_determinant_2018 <- sdoh_2018 %>% filter(COUNTYFIPS %in% oods_2018$GEOID)
-selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
-                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
-                        "AMFAR_MHFAC_RATE")
+selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
+                                              'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                                              'ACS_PCT_LT_HS',
+                                              'AHRF_TOT_COM_HEALTH_GRANT',
+                                              'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
+                                              'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
+                                              ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
 health_determinant_covariates_2018 <- health_determinant_2018 %>% dplyr::select(selected_variables)
 health_determinant_covariates_2018 <- health_determinant_covariates_2018 %>% replace(is.na(.), 0)
 
@@ -549,9 +553,13 @@ health_determinant_covariates_2018 <- health_determinant_covariates_2018 %>%
 #### SDOH 2019 ####
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% oods_2019$GEOID)
-selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
-                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
-                        "AMFAR_MHFAC_RATE")
+selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
+                        'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                        'ACS_PCT_LT_HS',
+                        'AHRF_TOT_COM_HEALTH_GRANT',
+                        'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
+                        'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
 
@@ -584,6 +592,7 @@ oods_2018_2019 <- oods_2018_2019 %>%
   ))
 
 
+
 #### fixed effects model ###
 library(lfe)
 model_felm_eastern_united_states<- felm(deaths_per_capita ~ deaths_social_porximity +deaths_spatial_proximity +
@@ -601,5 +610,5 @@ library(stargazer)
 stargazer(model_felm_eastern_united_states, type = "latex", 
           title = "Eastern United States Two way fixed effect model")
 
-
+write.csv(oods_2018_2019,'eastern_united_states_fixed_effect_model.csv')
 
