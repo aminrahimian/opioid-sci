@@ -221,9 +221,13 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_pr
 ##### ACS_PCT_LT_HS POS_DIST_ALC ACS_PCT_OTHER_INS
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
-selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
-                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
-                        "AMFAR_MHFAC_RATE")
+selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
+                        'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                        'ACS_PCT_LT_HS',
+                        'AHRF_TOT_COM_HEALTH_GRANT',
+                        'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
+                        'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
 
@@ -465,21 +469,27 @@ state_fentanyl_count_per_capita <- left_join(state_fentanyl_count_per_capita, st
 
 colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
 
+state_fentanyl_count_per_capita <- state_fentanyl_count_per_capita %>%
+  filter(!is.na(stnchsxo))
+
 #### adding fentanyl count per capita to the data ##
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
 
-cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,21,2:22)]
+cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,28,2:29)]
 
-cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(22)]
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(29)]
 
 #### renaming columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[19] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[20] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[21] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[25] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[26] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
+
+
+
 
 #### last pre processing ###
 # FIPS codes to update
