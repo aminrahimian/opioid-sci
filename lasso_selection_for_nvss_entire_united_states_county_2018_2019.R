@@ -255,7 +255,7 @@ health_determinant <- health_determinant %>% dplyr::select(c('COUNTY', 'COUNTYFI
                                                              'ACS_PCT_OTHER_INS', 'ACS_PCT_LT_HS',
                                                              ,'AHRF_TOT_COM_HEALTH_GRANT',
                                                              'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
-                                                             'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE',
+                                                             'ACS_MEDIAN_AGE', 'ACS_PCT_WHITE',
                                                              'ACS_PCT_BLACK','ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE'))
 health_determinant <- health_determinant %>% replace(is.na(.), 0)
 health_determinant <- health_determinant %>%
@@ -268,7 +268,8 @@ cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_
 
 
 ### PERFORMING LASSO SELECTION ####
-x <- cdc_mort_data_fips_wise_death_certificates[,c(11:28)]
+
+x <- cdc_mort_data_fips_wise_death_certificates[,c(11:27)]
 x <- as.matrix(x)
 y <- as.matrix(cdc_mort_data_fips_wise_death_certificates$deaths_per_capita)
 set.seed(123)
