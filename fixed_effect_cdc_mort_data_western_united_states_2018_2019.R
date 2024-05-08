@@ -32,10 +32,11 @@ cdc_2018_2019_mort_data_west_america <- cdc_combined_mort_data_2018_2019 %>% fil
 western_states <- c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
                     "MO","MT","ND","NE","NM","NV","OK",
                     "OR","SD","TX","UT","WA","WY")
-Soc.2019 <- get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
-                    state=western_states, survey="acs5", geometry = FALSE)
-
-Soc.2019<- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
+Soc.2019 <- get_estimates(geography = "county", year=2019, product = "population",state=western_states, geometry = TRUE )
+# get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
+#state=eastern_states, survey="acs5", geometry = TRUE)
+Soc.2019 <- Soc.2019 %>% filter(variable=="POP")
+Soc.2019 <- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
 fips_code <- tidycensus::fips_codes
 fips_code <- fips_code %>% filter(state %in% c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
@@ -130,7 +131,7 @@ missing_data_2019 <- missing_data_2019[,c(1,2,4,3)]
 oods_2019  <- bind_rows(oods_2019, 
                         missing_data_2019)
 ### adding population ###
-geoid_population <- Soc.2019 %>% dplyr::select(GEOID,estimate)
+geoid_population <- Soc.2019 %>% dplyr::select(GEOID,value)
 ### using the left join to merge the population for oods_2018 and oods_2019 ###
 oods_2018 <- left_join(oods_2018,geoid_population, by="GEOID")
 colnames(oods_2018)[5] <- "population"
@@ -487,9 +488,9 @@ colnames(total_fentanyl_2019_us)[2] <- "2019_total_cumulative_total_fentanyl"
 total_fentanyl_2018_us  <- total_fentanyl_2018_us[-c(2,12),]
 total_fentanyl_2019_us  <- total_fentanyl_2019_us[-c(2,12),]
 ####state population####
-state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
+state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(value))
 colnames(state_population)[1] <- "State"
-state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
+state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(value))
 colnames(state_population)[1] <- "State"
 
 #### adding population to the data set ####
@@ -535,9 +536,13 @@ oods_2019 <- left_join(oods_2019,total_fentanyl_2019_us, "stnchsxo")
 ##### ADDING SDOH COVARIATES ######
 sdoh_2018 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2018_COUNTY.xlsx")
 health_determinant_2018 <- sdoh_2018 %>% filter(COUNTYFIPS %in% oods_2018$GEOID)
-selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
-                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
-                        "AMFAR_MHFAC_RATE")
+selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
+                        'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                        'ACS_PCT_LT_HS',
+                        'AHRF_TOT_COM_HEALTH_GRANT',
+                        'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
+                        'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
 health_determinant_covariates_2018 <- health_determinant_2018 %>% dplyr::select(selected_variables)
 health_determinant_covariates_2018 <- health_determinant_covariates_2018 %>% replace(is.na(.), 0)
 
@@ -547,9 +552,13 @@ health_determinant_covariates_2018 <- health_determinant_covariates_2018 %>%
 #### SDOH 2019 ####
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% oods_2019$GEOID)
-selected_variables <- c("COUNTYFIPS", "ACS_PCT_HU_NO_VEH","POS_MEAN_DIST_ALC","ACS_PCT_OTHER_INS",
-                        "ACS_PCT_LT_HS","AHRF_TOT_COM_HEALTH_GRANT","ACS_MEDIAN_HH_INC","CCBP_BWLSTORES_RATE",
-                        "AMFAR_MHFAC_RATE")
+selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
+                        'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                        'ACS_PCT_LT_HS',
+                        'AHRF_TOT_COM_HEALTH_GRANT',
+                        'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
+                        'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
 
@@ -563,7 +572,6 @@ oods_2019 <- left_join(oods_2019, health_determinant_covariates, by="GEOID")
 ## panel_data ###
 oods_2018_2019 <- rbind(oods_2018,oods_2019)
 colnames(oods_2018_2019)[3] <- "year"
-colnames(oods_2018_2019)[3] <- "year"
 colnames(oods_2018_2019)[11] <- "Naloxone_Available"
 colnames(oods_2018_2019)[12] <- "ODR"
 colnames(oods_2018_2019)[13] <- "Buprenorphine_Available"
@@ -571,7 +579,7 @@ colnames(oods_2018_2019)[4] <- "deaths"
 colnames(oods_2018_2019)[9] <- "deaths_social_porximity"
 colnames(oods_2018_2019)[10] <- "deaths_spatial_proximity"
 
-
+write.csv(oods_2018_2019, "panel_western.csv")
 
 
 #### fixed effects model ###
@@ -584,3 +592,5 @@ model_felm_entire_western_united_states<- felm(deaths_per_capita ~ deaths_social
                                        +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported|GEOID+year,
                                        data=oods_2018_2019,weights = oods_2018_2019$population)
 summary(model_felm_entire_western_united_states)
+
+
