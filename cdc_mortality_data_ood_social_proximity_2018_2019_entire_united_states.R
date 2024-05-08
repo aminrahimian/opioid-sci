@@ -41,10 +41,12 @@ united_states <- c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
                    "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", 
                    "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY")
 
-Soc.2019 <- get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
-                    state=united_states, survey="acs5", geometry = FALSE)
+Soc.2019 <- get_estimates(geography = "county", year=2019, product = "population",state=united_states, geometry = TRUE )
+# get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
+#state=eastern_states, survey="acs5", geometry = TRUE)
+Soc.2019 <- Soc.2019 %>% filter(variable=="POP")
+Soc.2019 <- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
-Soc.2019<- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
 fips_code <- tidycensus::fips_codes
 fips_code <- fips_code %>% filter(state %in% c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -135,7 +137,7 @@ cdc_mort_data_fips_wise_death_certificates <- bind_rows(cdc_mort_data_fips_wise_
                                                         missing_data)
 
 ### adding the population to the cdc_mort_data_fips_wise_death_certificates #####
-geoid_population <- Soc.2019 %>% dplyr::select(GEOID,estimate)
+geoid_population <- Soc.2019 %>% dplyr::select(GEOID,value)
 ### using the left join to merge it ###
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,geoid_population, by="GEOID")
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "population"
@@ -467,7 +469,7 @@ total_fentanyl_2018_2019_US$cumulative_2018_2019_fentanyl <- total_fentanyl_2018
 total_fentanyl_2018_2019_US <- total_fentanyl_2018_2019_US[-c(2,12),]
 
 ####state population####
-state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
+state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(value))
 colnames(state_population)[1] <- "State"
 
 #### adding population to the data set ####
@@ -497,9 +499,9 @@ cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_cer
 cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(29)]
 
 #### renaming columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[25] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[26] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[26] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[28] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
