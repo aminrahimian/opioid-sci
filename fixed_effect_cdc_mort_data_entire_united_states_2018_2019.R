@@ -41,10 +41,11 @@ united_states <- c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
                    "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", 
                    "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY")
 
-Soc.2019 <- get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
-                    state=united_states, survey="acs5", geometry = FALSE)
-
-Soc.2019<- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
+Soc.2019 <- get_estimates(geography = "county", year=2019, product = "population",state=united_states, geometry = TRUE )
+# get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
+#state=eastern_states, survey="acs5", geometry = TRUE)
+Soc.2019 <- Soc.2019 %>% filter(variable=="POP")
+Soc.2019 <- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
 
 fips_code <- tidycensus::fips_codes
 fips_code <- fips_code %>% filter(state %in% c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
@@ -141,7 +142,7 @@ missing_data_2019 <- missing_data_2019[,c(1,2,4,3)]
 oods_2019  <- bind_rows(oods_2019, 
                         missing_data_2019)
 ### adding population ###
-geoid_population <- Soc.2019 %>% dplyr::select(GEOID,estimate)
+geoid_population <- Soc.2019 %>% dplyr::select(GEOID,value)
 ### using the left join to merge the population for oods_2018 and oods_2019 ###
 oods_2018 <- left_join(oods_2018,geoid_population, by="GEOID")
 colnames(oods_2018)[5] <- "population"
@@ -501,7 +502,7 @@ total_fentanyl_2018_us  <- total_fentanyl_2018_us[-c(2,12),]
 total_fentanyl_2019_us  <- total_fentanyl_2019_us[-c(2,12),]
 
 ### population ####
-state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(estimate))
+state_population <- Soc.2019 %>% group_by(state_name) %>% summarise(total_population=sum(value))
 colnames(state_population)[1] <- "State"
 
 #### adding population to the data set ####
@@ -593,6 +594,9 @@ colnames(oods_2018_2019)[4] <- "deaths"
 colnames(oods_2018_2019)[9] <- "deaths_social_porximity"
 colnames(oods_2018_2019)[10] <- "deaths_spatial_proximity"
 
+### write.csv###
+
+write.csv(oods_2018_2019,'entire_united_states_fixed_effect_model.csv')
 #### fixed effects model ###
 
 library(lfe)
@@ -609,7 +613,6 @@ library(stargazer)
 stargazer(model_felm_entire_united_states, type = "latex", 
           title = "Entire United States Two way fixed effect model")
 
-write.csv(oods_2018_2019,'entire_united_states_fixed_effect_model.csv')
 
 
 library(coefplot)
