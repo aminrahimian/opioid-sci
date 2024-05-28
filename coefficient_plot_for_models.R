@@ -216,28 +216,6 @@ print(my_plot_2)
 
 
 
-#### correlation chart ###
-library(ggplot2)
-library(GGally)
-
-nvss_ood_county_wise_2013_2017 <- read.csv("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/nvss_ood_county_wise_2013_2017.csv")
-
-colnames(nvss_ood_county_wise_2013_2017)[6] <- "deaths per capita"
-colnames(nvss_ood_county_wise_2013_2017)[7] <- "social proximity"
-colnames(nvss_ood_county_wise_2013_2017)[8] <- "spatial proximity"
-# Select the variables from the dataset
-variables <- c("deaths per capita", "social proximity", "spatial proximity")
-
-# Create a new data frame with only the selected variables
-df_selected <- nvss_ood_county_wise_2013_2017[variables]
-
-# Create the conditional scatterplot matrix
-ggpairs(df_selected, 
-        lower = list(continuous = wrap("points", alpha = 0.8, color="red")),
-        diag = list(continuous = wrap("barDiag", fill="red", bins=10)),
-        upper = list(continuous = wrap("smooth", method = "lm", color="red", fullrange = TRUE)))+
-  theme_minimal()
-
 ## g2sls 
 ### east vs west ####
 ### west ####
@@ -312,8 +290,8 @@ stargazer(network_autocorrelation_western_us,spatial_autocorrelation_western_us,
           title = "Autocorrelation")
 ##### two way fixed effect ####
 oods_2018_2019_western_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/panel_western.csv')
-model_felm_western_united_states <- felm(deaths_per_capita ~  deaths_social_porximity + deaths_spatial_proximity +
-                                           ACS_PCT_UNEMPLOY + ODR + Naloxone_Available + Buprenorphine_Available + 
+model_felm_western_united_states <- felm(deaths_per_capita ~  ACS_PCT_UNEMPLOY+deaths_social_porximity + deaths_spatial_proximity +
+                                          ODR + Naloxone_Available + Buprenorphine_Available + 
                                            St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
                                            ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
                                            AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_WHITE +

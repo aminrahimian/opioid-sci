@@ -41,7 +41,7 @@ united_states <- c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
                    "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", 
                    "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY")
 
-Soc.2019 <- get_estimates(geography = "county", year=2019, product = "population",state=united_states, geometry = TRUE )
+Soc.2019 <- get_estimates(geography = "county", year=2018, product = "population",state=united_states, geometry = TRUE )
 # get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
 #state=eastern_states, survey="acs5", geometry = TRUE)
 Soc.2019 <- Soc.2019 %>% filter(variable=="POP")

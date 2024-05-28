@@ -32,7 +32,7 @@ cdc_2018_2019_mort_data_west_america <- cdc_combined_mort_data_2018_2019 %>% fil
 western_states <- c("AR","AZ","CA","CO","IA","ID","KS","LA","MN",
                     "MO","MT","ND","NE","NM","NV","OK",
                     "OR","SD","TX","UT","WA","WY")
-Soc.2019 <- get_estimates(geography = "county", year=2019, product = "population",state=western_states, geometry = TRUE )
+Soc.2019 <- get_estimates(geography = "county", year=2018, product = "population",state=western_states, geometry = TRUE )
 # get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
 #state=eastern_states, survey="acs5", geometry = TRUE)
 Soc.2019 <- Soc.2019 %>% filter(variable=="POP")
