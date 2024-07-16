@@ -542,7 +542,7 @@ selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY',
                         'AHRF_TOT_COM_HEALTH_GRANT',
                         'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
                         'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
-                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE','ACS_PCT_OTHER_INS')
 health_determinant_covariates_2018 <- health_determinant_2018 %>% dplyr::select(selected_variables)
 health_determinant_covariates_2018 <- health_determinant_covariates_2018 %>% replace(is.na(.), 0)
 
@@ -558,7 +558,7 @@ selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY',
                         'AHRF_TOT_COM_HEALTH_GRANT',
                         'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
                         'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
-                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE')
+                        ,'ACS_PCT_ASIAN','ACS_PCT_AIAN','ACS_PCT_NHPI','ACS_PCT_MULT_RACE','ACS_PCT_OTHER_INS')
 health_determinant_covariates <- health_determinant %>% dplyr::select(selected_variables)
 health_determinant_covariates <- health_determinant_covariates %>% replace(is.na(.), 0)
 

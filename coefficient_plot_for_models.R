@@ -11,26 +11,28 @@ library(stargazer)
 ###entire united states ####
 cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
 cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,-1]
-library(MASS)
-summary(nb_1_entire_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity +
-                                   ACS_PCT_UNEMPLOY + ODR + Naloxone_Available + Buprenorphine_Available + 
-                                   St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                   AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_MALE + ACS_PCT_WHITE +
-                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI +ACS_PCT_MULT_RACE+ offset(log(population)), 
-                                 data = cdc_mort_data_fips_wise_death_certificates_entire_us,weights=population,
-                                 control = glm.control(maxit = 1000)))
-#### negative binomial regression ####
-nb_1_clustered_std_error_entire_us <- coeftest(nb_1_entire_us,vcov = vcovCL,
-                                               cluster = ~ cdc_mort_data_fips_wise_death_certificates_entire_us$stnchsxo)
-nb_1_clustered_std_error_entire_us
+# library(MASS)
+# summary(nb_1_entire_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity +
+#                                    ACS_PCT_UNEMPLOY + ODR + Naloxone_Available + Buprenorphine_Available + 
+#                                    St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
+#                                    ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
+#                                    AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_MALE + ACS_PCT_WHITE +
+#                                    ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI +ACS_PCT_MULT_RACE+ offset(log(population)), 
+#                                  data = cdc_mort_data_fips_wise_death_certificates_entire_us,weights=population,
+#                                  control = glm.control(maxit = 1000)))
+# #### negative binomial regression ####
+# nb_1_clustered_std_error_entire_us <- coeftest(nb_1_entire_us,vcov = vcovCL,
+#                                                cluster = ~ cdc_mort_data_fips_wise_death_certificates_entire_us$stnchsxo)
+# nb_1_clustered_std_error_entire_us
 #### linear regression ####
 summary(lm_model_entire_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                   St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY +  ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                   AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE  + ACS_PCT_WHITE +
-                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
+                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
+                                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
+                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
+                                   CCBP_BWLSTORES_RATE + 
+                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                   ACS_PCT_NHPI, 
                                  data = cdc_mort_data_fips_wise_death_certificates_entire_us, 
                                  weights = population))
 
@@ -45,10 +47,12 @@ lw_2_entire_us <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analy
 
 network_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                                              ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                             St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY +  ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                                             AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_WHITE +
-                                                             ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
+                                                             St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
+                                                             POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
+                                                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
+                                                             CCBP_BWLSTORES_RATE + 
+                                                             ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                             ACS_PCT_NHPI, 
                                       data=cdc_mort_data_fips_wise_death_certificates_entire_us,
                                       listw = lw_1_entire_us,
                                       zero.policy = TRUE,
@@ -59,10 +63,12 @@ summary(network_autocorrelation_entire_united_states)
 # #### spatial ####
 spatial_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                                              ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                             St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY +  ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                                             AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                                                             ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
+                                                             St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
+                                                             POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
+                                                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
+                                                             CCBP_BWLSTORES_RATE + 
+                                                             ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                             ACS_PCT_NHPI, 
                                       data=cdc_mort_data_fips_wise_death_certificates_entire_us,
                                       listw = lw_2_entire_us,
                                       zero.policy = TRUE,
@@ -73,12 +79,14 @@ summary(spatial_autocorrelation_entire_united_states)
 ### fixed effect model ###
 oods_2018_2019_entire_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_entire_us/entire_united_states_fixed_effect_model.csv')
 
-model_felm_entire_united_states<- felm(deaths_per_capita ~  ODR+deaths_social_porximity + deaths_spatial_proximity 
-                                         + Naloxone_Available + Buprenorphine_Available + 
-                                         St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY +  ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                         ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                         AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                                         ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE|GEOID+year,
+model_felm_entire_united_states<- felm(deaths_per_capita~ ODR + deaths_social_porximity + deaths_spatial_proximity +
+                                         Naloxone_Available + Buprenorphine_Available + 
+                                         St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
+                                         POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
+                                         ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
+                                         CCBP_BWLSTORES_RATE + 
+                                         ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                         ACS_PCT_NHPI|GEOID+year,
                                        data=oods_2018_2019_entire_united_states,weights = oods_2018_2019_entire_united_states$population)
 summary(model_felm_entire_united_states)
 
@@ -117,29 +125,31 @@ cdc_mort_data_fips_wise_death_certificates_eastern_us <- read.csv('C:/Users/kush
 cdc_mort_data_fips_wise_death_certificates_eastern_us <- cdc_mort_data_fips_wise_death_certificates_eastern_us[,-1]
 
 ###negative binomial regression ###
-summary(nb1_eastern_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
-                                   ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC_BELOW99+ 
-                                 ACS_PCT_HU_NO_VEH+ 
-                                 ACS_PCT_OTHER_INS+ ACS_PCT_LT_HS+
-                                 CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ 
-                                 ACS_MEDIAN_AGE+ACS_PCT_MALE+ACS_PCT_FEMALE,
-                                 ACS_PCT_BLACK+ACS_PCT_ASIAN+ACS_PCT_AIAN+ACS_PCT_NHPI+ offset(log(population))
-                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                                 data = cdc_mort_data_fips_wise_death_certificates_eastern_us,weights=population,
-                                 control = glm.control(maxit = 500)))
-
-# Display coefficients and clustered standard errors
-nb_1_clustered_std_error_eastern_us <- coeftest(nb1_eastern_us,vcov = vcovCL,
-                                                cluster = ~ cdc_mort_data_fips_wise_death_certificates_eastern_us$stnchsxo)
-nb_1_clustered_std_error_eastern_us
+# summary(nb1_eastern_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                    ACS_PCT_UNEMPLOY+ACS_PCT_PERSON_INC_BELOW99+ 
+#                                  ACS_PCT_HU_NO_VEH+ 
+#                                  ACS_PCT_OTHER_INS+ ACS_PCT_LT_HS+
+#                                  CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ 
+#                                  ACS_MEDIAN_AGE+ACS_PCT_MALE+ACS_PCT_FEMALE,
+#                                  ACS_PCT_BLACK+ACS_PCT_ASIAN+ACS_PCT_AIAN+ACS_PCT_NHPI+ offset(log(population))
+#                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                                  data = cdc_mort_data_fips_wise_death_certificates_eastern_us,weights=population,
+#                                  control = glm.control(maxit = 500)))
+# 
+# # Display coefficients and clustered standard errors
+# nb_1_clustered_std_error_eastern_us <- coeftest(nb1_eastern_us,vcov = vcovCL,
+#                                                 cluster = ~ cdc_mort_data_fips_wise_death_certificates_eastern_us$stnchsxo)
+# nb_1_clustered_std_error_eastern_us
 
 ### linear model ###
 summary(lm_model_eastern_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
-                                  ODR + Naloxone_Available + Buprenorphine_Available + 
-                                    St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY +  ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                    ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                    AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_WHITE +
-                                    ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
+                                    ODR + Naloxone_Available + Buprenorphine_Available + 
+                                    St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                  + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                    AHRF_TOT_COM_HEALTH_GRANT +
+                                    CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                    ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                    ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
                                   data = cdc_mort_data_fips_wise_death_certificates_eastern_us, weights = population 
                                   ))
         
@@ -151,23 +161,27 @@ lw_1_eastern_united_states <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Dat
 lw_2_eastern_united_states <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/lw_2_eastern_us.rds")
 network_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                                   AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE  + ACS_PCT_WHITE +
-                                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI +  ACS_PCT_MULT_RACE, 
+                                                   St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                                 + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                                   AHRF_TOT_COM_HEALTH_GRANT +
+                                                   CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                                   ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                                   ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE 
                                       data=cdc_mort_data_fips_wise_death_certificates_eastern_us ,
                                       listw = lw_1_eastern_united_states,
                                       zero.policy = TRUE,
                                       na.action = na.omit,
-                                      tol.solve = 1*exp(-50)
+                                      tol.solve = 1*exp(-50),
 )
 
 summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                                           AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_WHITE +
-                                                           ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI+  ACS_PCT_MULT_RACE, 
+                                                           St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                                         + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                                           AHRF_TOT_COM_HEALTH_GRANT +
+                                                           CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                                           ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                                           ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
                                               data=cdc_mort_data_fips_wise_death_certificates_eastern_us ,
                                               listw = lw_2_eastern_united_states,
                                               zero.policy = TRUE,
@@ -177,12 +191,14 @@ summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ dea
 
 #### fixed effect models eastern united states###
 oods_2018_2019_eastern_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_eastern_us/eastern_united_states_fixed_effect_model.csv')
-model_felm_eastern_united_states<- felm(deaths_per_capita ~  ACS_PCT_UNEMPLOY + deaths_social_porximity + deaths_spatial_proximity +
+model_felm_eastern_united_states<- felm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                           ODR + Naloxone_Available + Buprenorphine_Available + 
-                                          St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                          ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                          AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                                          ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI 
+                                          St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                        + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                          AHRF_TOT_COM_HEALTH_GRANT +
+                                          CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                          ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                          ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE
                                         |GEOID+year,
                                         data=oods_2018_2019_eastern_united_states,weights = oods_2018_2019_eastern_united_states$population)
 summary(model_felm_eastern_united_states)
@@ -220,7 +236,7 @@ print(my_plot_2)
 ### east vs west ####
 ### west ####
 cdc_mort_data_fips_wise_death_certificates_western_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/western_united_stated_mort_data.csv')
-cdc_mort_data_fips_wise_death_certificates_western_us <- cdc_mort_data_fips_wise_death_certificates_western_us[,c(-1,-21)]
+cdc_mort_data_fips_wise_death_certificates_western_us <- cdc_mort_data_fips_wise_death_certificates_western_us[,c(-1,-22)]
 
 w_i_j_western <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/w_i_j_western.csv')
 w_i_j_western <- w_i_j_western[,-1]
@@ -242,10 +258,12 @@ scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us
 
 lm_western <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                   St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY +  ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                   AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                   ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE,data =cdc_mort_data_fips_wise_death_certificates_western_us,
+                   St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                 + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                   AHRF_TOT_COM_HEALTH_GRANT +
+                   CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                   ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                   ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE,data =cdc_mort_data_fips_wise_death_certificates_western_us,
                  weight=scaled_population_west )
 
 
@@ -260,10 +278,12 @@ lm_western_clustered_std_error
 #### network autocorrelation ####
 network_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                                   AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI+  ACS_PCT_MULT_RACE,
+                                                   St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                                 + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                                   AHRF_TOT_COM_HEALTH_GRANT +
+                                                   CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                                   ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                                   ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE,
                                                  data= cdc_mort_data_fips_wise_death_certificates_western_us,
                                                  listw = lw_1_western_us,
                                                  zero.policy = TRUE,
@@ -275,10 +295,12 @@ summary(network_autocorrelation_western_us)
 #### spatial autocorrelation ####
 summary(spatial_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                                                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                                           AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                                                           ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI+  ACS_PCT_MULT_RACE,
+                                                           St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                                         + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                                           AHRF_TOT_COM_HEALTH_GRANT +
+                                                           CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                                           ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                                           ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE,
                                                          data= cdc_mort_data_fips_wise_death_certificates_western_us,
                                                          listw = lw_2_western_us,
                                                          zero.policy = TRUE,
@@ -290,17 +312,36 @@ stargazer(network_autocorrelation_western_us,spatial_autocorrelation_western_us,
           title = "Autocorrelation")
 ##### two way fixed effect ####
 oods_2018_2019_western_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/panel_western.csv')
-model_felm_western_united_states <- felm(deaths_per_capita ~  ACS_PCT_UNEMPLOY+deaths_social_porximity + deaths_spatial_proximity +
-                                          ODR + Naloxone_Available + Buprenorphine_Available + 
-                                           St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                                           AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_WHITE +
-                                           ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI|GEOID+year,
+model_felm_western_united_states <- felm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
+                                           ODR + Naloxone_Available + Buprenorphine_Available + 
+                                           St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                                         + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                                           AHRF_TOT_COM_HEALTH_GRANT +
+                                           CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                                           ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                                           ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE|GEOID+year,
                                         data=oods_2018_2019_western_united_states,weights = oods_2018_2019_western_united_states$population)
 summary(model_felm_western_united_states)
 stargazer(model_felm_western_united_states, type = "latex", 
           title = "two-way fixed effect western and central us")
 #### g2sls##
+cdc_mort_data_fips_wise_death_certificates_western_us_selected_covariates_from_lasso <- cdc_mort_data_fips_wise_death_certificates_western_us %>%
+  select(
+    ODR,
+    Naloxone_Available,
+    Buprenorphine_Available,
+    St_count_illicit_opioid_reported,
+    ACS_PCT_UNEMPLOY,
+    ACS_PCT_HU_NO_VEH,
+    POS_MEAN_DIST_ALC,
+    ACS_PCT_OTHER_INS,
+    ACS_PCT_LT_HS,
+    AHRF_TOT_COM_HEALTH_GRANT,
+    CCBP_BWLSTORES_RATE,
+    ACS_PCT_ASIAN,
+    ACS_PCT_AIAN,
+    ACS_PCT_NHPI
+)
 X_n_western  <- as.matrix(cdc_mort_data_fips_wise_death_certificates_western_us[,c(11:28)])
 
 # Compute the matrices
@@ -337,75 +378,24 @@ max_population_west <- max(cdc_mort_data_fips_wise_death_certificates_western_us
 scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us$population - min_population_west) / (max_population_west - min_population_west)
 
 ##### western plot ####
-lm_western <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                   ACS_PCT_HU_NO_VEH+
-                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
-                   +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,data =cdc_mort_data_fips_wise_death_certificates_western_us, weight=scaled_population_west )
 
-
-summary(lm_western)
-
-lm_western_clustered_std_error <- coeftest(lm_western,vcov = vcovCL,
-                                                cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
-lm_western_clustered_std_error
-
-my_plot_lm_west <- modelplot(list(lm_western,lm_western_clustered_std_error),coef_omit =c(-2,-3),
-                       draw = TRUE)
-stargazer(lm_western_clustered_std_error,lm_western_clustered_std_error, type = "latex", 
-          title = "cluster-robust linear regression")
-
-
-library(MASS)
-summary(nb_1_western_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
-                                   ACS_PCT_HU_NO_VEH+
-                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
-                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                                 data = cdc_mort_data_fips_wise_death_certificates_western_us,weights=scaled_population_west,
-                                 control = glm.control(maxit = 1000)))
-#### negative binomial regression ####
-nb_1_clustered_std_error_western_us <- coeftest(nb_1_western_us,vcov = vcovCL,
-                                               cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
-nb_1_clustered_std_error_western_us
-
-stargazer(nb_1_western_us,nb_1_clustered_std_error_western_us, type = "latex", 
-          title = "NBR")
-
-
-
-#### quasi poisson regression ###########
-# Load necessary libraries
-library(MASS)
-library(sandwich)
-library(lmtest)
-
-# Define a custom family for quasi-Poisson with logistic link
-quasi_poisson_logistic <- function() {
-  family <- quasipoisson()
-  family$link <- "logit"
-  return(family)
-}
-
-# Quasi-Poisson regression with logistic link
-quasi_poisson_model <- glm(deaths ~ deaths_social_porximity + deaths_spatial_proximity +
-                             ACS_PCT_HU_NO_VEH +
-                             POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC +
-                             CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + offset(log(population)) +
-                             ODR + Naloxone_Available + Buprenorphine_Available + St_count_illicit_opioid_reported, 
-                           family = quasipoisson, data = cdc_mort_data_fips_wise_death_certificates_western_us,
-                           weights = population)
-
-
-# Clustered standard errors
-
-robust_covariance <- vcovHAC(quasi_poisson_model)
-robust_summary <- coeftest(quasi_poisson_model, robust_covariance)
-
-quasi_poisson <- coeftest(quasi_poisson_model,vcov = vcovCL, cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
+# library(MASS)
+# summary(nb_1_western_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                    ACS_PCT_HU_NO_VEH+
+#                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
+#                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                                  data = cdc_mort_data_fips_wise_death_certificates_western_us,weights=scaled_population_west,
+#                                  control = glm.control(maxit = 1000)))
+# #### negative binomial regression ####
+# nb_1_clustered_std_error_western_us <- coeftest(nb_1_western_us,vcov = vcovCL,
+#                                                cluster = ~ cdc_mort_data_fips_wise_death_certificates_western_us$stnchsxo)
+# nb_1_clustered_std_error_western_us
+# 
+# stargazer(nb_1_western_us,nb_1_clustered_std_error_western_us, type = "latex", 
+#           title = "NBR")
+# 
 
 
 
@@ -436,24 +426,24 @@ my_plot_west <- my_plot_west +
 print(my_plot_west)
 
 
-# Modify the plot
-my_plot_lm_west <- my_plot_lm_west + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
-
-
-my_plot_lm_west <- my_plot_lm_west + 
-  labs(color = "Model Type") +
-  scale_color_manual(labels = c("linear regression","cluster robust linear regression"),values = c("#e41a1c","#377eb8"))
-
-my_plot_lm_west
-
-stargazer(eu,wu,eu_entire_us, type = "latex", 
-          title = "G2SLS")
+# # Modify the plot
+# my_plot_lm_west <- my_plot_lm_west + 
+#   theme(panel.grid.major = element_blank(),  # Remove major grid lines
+#         panel.grid.minor = element_blank(),  # Remove minor grid lines
+#         panel.background = element_blank(),   # Remove panel background
+#         axis.line = element_blank(),          # Remove axis lines
+#         axis.ticks = element_blank()) +       # Remove axis ticks
+#   geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+# 
+# 
+# my_plot_lm_west <- my_plot_lm_west + 
+#   labs(color = "Model Type") +
+#   scale_color_manual(labels = c("linear regression","cluster robust linear regression"),values = c("#e41a1c","#377eb8"))
+# 
+# my_plot_lm_west
+# 
+# stargazer(eu,wu,eu_entire_us, type = "latex", 
+#           title = "G2SLS")
 
 
 # Now use the scaled_population in your ivreg model
@@ -468,13 +458,15 @@ cdc_mort_data_fips_wise_death_certificates_western_us$fitted_spatial_proximity <
 
 
 # Second stage: Use predicted values in the main regression
-second_stage_wu <- ivreg(deaths_per_capita ~ fitted_social_proximity +fitted_spatial_proximity +
+second_stage_wu <- ivreg(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-                           AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
-                           ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI+  ACS_PCT_MULT_RACE, 
-                              data =  cdc_mort_data_fips_wise_death_certificates_western_us, weights=scaled_population_west,diagnostics=TRUE)
+                           St_count_illicit_opioid_reported +  ACS_PCT_UNEMPLOY + ACS_PCT_PERSON_INC_BELOW99 
+                         + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS + ACS_PCT_LT_HS + 
+                           AHRF_TOT_COM_HEALTH_GRANT +
+                           CCBP_BWLSTORES_RATE + AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + 
+                           ACS_PCT_WHITE  + ACS_PCT_ASIAN + 
+                           ACS_PCT_AIAN + ACS_PCT_NHPI + ACS_PCT_MULT_RACE, 
+                              data =  cdc_mort_data_fips_wise_death_certificates_western_us)
 # Print the results
 summary(second_stage_wu)
 
@@ -547,7 +539,7 @@ second_stage_eu <- ivreg(deaths_per_capita ~ fitted_social_proximity +fitted_spa
                            ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
                            AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
                            ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI+  ACS_PCT_MULT_RACE, 
-                         data =  cdc_mort_data_fips_wise_death_certificates_eastern_us, weights=scaled_population_east,diagnostics=TRUE)
+                         data =  cdc_mort_data_fips_wise_death_certificates_eastern_us)
 # Print the results
 summary(second_stage_eu)
 
@@ -560,24 +552,24 @@ eu_eu
 
 
 #### east vs west CI
-my_plot_4 <- modelplot(list(eu,wu),coef_omit =c(-2,-3),
-                     draw = TRUE)
-# Modify the plot
-my_plot_4 <- my_plot_4 + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
-
-
-my_plot_4 <- my_plot_4 + 
-  labs(color = "Model Type") +
-  scale_color_manual(labels = c("G2SLS Eastern United States",
-                                "G2SLS Western United States"),values = c("#e41a1c", "#377eb8")) # replace #colorN with actual color codes or names
-
-print(my_plot_4)
+# my_plot_4 <- modelplot(list(eu,wu),coef_omit =c(-2,-3),
+#                      draw = TRUE)
+# # Modify the plot
+# my_plot_4 <- my_plot_4 + 
+#   theme(panel.grid.major = element_blank(),  # Remove major grid lines
+#         panel.grid.minor = element_blank(),  # Remove minor grid lines
+#         panel.background = element_blank(),   # Remove panel background
+#         axis.line = element_blank(),          # Remove axis lines
+#         axis.ticks = element_blank()) +       # Remove axis ticks
+#   geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+# 
+# 
+# my_plot_4 <- my_plot_4 + 
+#   labs(color = "Model Type") +
+#   scale_color_manual(labels = c("G2SLS Eastern United States",
+#                                 "G2SLS Western United States"),values = c("#e41a1c", "#377eb8")) # replace #colorN with actual color codes or names
+# 
+# print(my_plot_4)
 ### g2sls entire us ####
 cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
 cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,c(-1,-21)]
@@ -644,7 +636,7 @@ second_stage_entire_us <- ivreg(deaths_per_capita ~ fitted_social_proximity +fit
                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
                                   AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE +  ACS_PCT_WHITE +
                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI+  ACS_PCT_MULT_RACE, 
-                      data =  cdc_mort_data_fips_wise_death_certificates_entire_us, weights=scaled_population_us,diagnostics=TRUE)
+                      data =  cdc_mort_data_fips_wise_death_certificates_entire_us)
 # Print the results
 summary(second_stage_entire_us)
 
@@ -672,27 +664,27 @@ my_plot_5 <- my_plot_5 +
 
 stargazer(eu_eu,eu_wu,eu_entire_us, type = "latex", 
           title = "G2SLS")
-##### nbr ####
-my_plot_3 <- modelplot(list(nb_1_clustered_std_error_western_us,
-                          nb_1_clustered_std_error_entire_us,
-                          nb_1_clustered_std_error_eastern_us),
-                     coef_omit = c(-2,-3),
-                     draw = TRUE)
-
-
-my_plot_3 <- my_plot_3 + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
-my_plot_3
-
-my_plot_3 <- my_plot_3 + 
-  labs(color = "Model Type") +
-  scale_color_manual(labels = c("cluster-robust NBR (Western US)",
-                                "clusterd_robust NBR (Entire US)",
-                                "clusterd-robust NBR (Eastern US)"),values = c("#e41a1c", "#377eb8", "#4daf4a")) 
-
-print(my_plot_3)
+# ##### nbr ####
+# my_plot_3 <- modelplot(list(nb_1_clustered_std_error_western_us,
+#                           nb_1_clustered_std_error_entire_us,
+#                           nb_1_clustered_std_error_eastern_us),
+#                      coef_omit = c(-2,-3),
+#                      draw = TRUE)
+# 
+# 
+# my_plot_3 <- my_plot_3 + 
+#   theme(panel.grid.major = element_blank(),  # Remove major grid lines
+#         panel.grid.minor = element_blank(),  # Remove minor grid lines
+#         panel.background = element_blank(),   # Remove panel background
+#         axis.line = element_blank(),          # Remove axis lines
+#         axis.ticks = element_blank()) +       # Remove axis ticks
+#   geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+# my_plot_3
+# 
+# my_plot_3 <- my_plot_3 + 
+#   labs(color = "Model Type") +
+#   scale_color_manual(labels = c("cluster-robust NBR (Western US)",
+#                                 "clusterd_robust NBR (Entire US)",
+#                                 "clusterd-robust NBR (Eastern US)"),values = c("#e41a1c", "#377eb8", "#4daf4a")) 
+# 
+# print(my_plot_3)

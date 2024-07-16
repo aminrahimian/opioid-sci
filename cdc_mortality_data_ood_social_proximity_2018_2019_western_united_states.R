@@ -233,7 +233,7 @@ colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_in_spatial_pr
 sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_AHRQ/SDOH_2019_COUNTY_excel.xlsx")
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
 selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
-                                              'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
+                                              'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 'ACS_PCT_OTHER_INS',
                                               'ACS_PCT_LT_HS',
                                               'AHRF_TOT_COM_HEALTH_GRANT',
                                               'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 

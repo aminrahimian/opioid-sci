@@ -34,7 +34,7 @@ cdc_2018_2019_mort_data_east_america <- cdc_combined_mort_data_2018_2019 %>% fil
 eastern_states <- c("ME", "NH", "VT", "NY", "MA", "RI", "CT", "NJ", "PA", "DE", 
                     "MD", "DC", "MI", "OH", "IN", "IL", "WI", "WV", "VA", "NC", 
                     "TN", "KY", "SC", "GA", "AL", "MS", "FL")
-Soc.2019 <- get_estimates(geography = "county", year=2019, product = "population",state=eastern_states, geometry = TRUE )
+Soc.2019 <- get_estimates(geography = "county", year=2018, product = "population",state=eastern_states, geometry = TRUE )
 # get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
 #state=eastern_states, survey="acs5", geometry = TRUE)
 Soc.2019 <- Soc.2019 %>% filter(variable=="POP")

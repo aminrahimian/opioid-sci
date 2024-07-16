@@ -224,7 +224,7 @@ sdoh_2019 <- read_excel("C:/Users/kusha/Desktop/Data for Paper/SDOH_COUNTY_2019_
 health_determinant <- sdoh_2019 %>% filter(COUNTYFIPS %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
 selected_variables <- c("COUNTYFIPS", 'ACS_PCT_UNEMPLOY', 
                         'ACS_PCT_HU_NO_VEH', 'POS_MEAN_DIST_ALC', 
-                        'ACS_PCT_LT_HS',
+                        'ACS_PCT_LT_HS', 'ACS_PCT_OTHER_INS',
                         'AHRF_TOT_COM_HEALTH_GRANT',
                         'ACS_MEDIAN_HH_INC','CCBP_BWLSTORES_RATE','AMFAR_MHFAC_RATE', 
                         'ACS_MEDIAN_AGE', 'ACS_PCT_MALE','ACS_PCT_WHITE'
@@ -477,18 +477,17 @@ state_fentanyl_count_per_capita <- state_fentanyl_count_per_capita %>%
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
 
-cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,28,2:29)]
+cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,29,2:30)]
 
-cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(29)]
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(30)]
 
 #### renaming columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[26] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[28] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[28] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[29] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
-
 
 
 
