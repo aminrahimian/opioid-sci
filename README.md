@@ -32,5 +32,6 @@ The diagram shows the data pipeline for OOD, along with the streams for the prim
 * Exploratory maps are generated from the R scrpit "pa_ood_2018_2019_figures"
 * The confidence interval plots and scatter plot matrix are generated from the r-script "coefficient_plot_for_models". The script also entails the regression tables.
 
-
+## data availability statement
+Mortality data was obtained from the National Center for Health Statistics (NCHS). Due to confidentiality concerns, this data set is not publicly accessible, but can be requested from NCHS at https://www.cdc.gov/nchs/nvss/nvss-restricted-data.htm. The clinical covariates were sourced from the IQVIA Xponent database, which is also not publicly available. Access can be requested through IQVIA at https://www.iqvia.com/insights/the-iqvia-institute/available-iqvia-data. Data on illicit fentanyl-related drugs were obtained from the National Forensic Laboratory Information System (NFLIS) and can be accessed at https://www.nflis.deadiversion.usdoj.gov. The social determinants of health (SDOH) covariates are available from the Agency for Healthcare Research and Quality (AHRQ) at https://www.ahrq.gov/sdoh/data-analytics/sdoh-data.html. The Social Connectedness Index data can be accessed through the Facebook Data for Good tools at https://dataforgood.facebook.com/dfg/tools/social-connectedness-index.
 
