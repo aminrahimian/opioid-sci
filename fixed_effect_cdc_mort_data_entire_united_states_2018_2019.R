@@ -599,23 +599,23 @@ colnames(oods_2018_2019)[10] <- "deaths_spatial_proximity"
 write.csv(oods_2018_2019,'entire_united_states_fixed_effect_model.csv')
 #### fixed effects model ###
 
-library(lfe)
-model_felm_entire_united_states<- felm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                         ACS_PCT_HU_NO_VEH+
-                                         POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                         ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                         +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
-                                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported|GEOID+year,
-                   data=oods_2018_2019,weights = oods_2018_2019$population)
-summary(model_felm_entire_united_states)
-
-library(stargazer)
-stargazer(model_felm_entire_united_states, type = "latex", 
-          title = "Entire United States Two way fixed effect model")
-
-
-
-library(coefplot)
-coefplot(model_felm_entire_united_states, coefficients = c("deaths_social_porximity","deaths_spatial_proximity"),color = "green",)
-
-
+# library(lfe)
+# model_felm_entire_united_states<- felm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                          ACS_PCT_HU_NO_VEH+
+#                                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                          ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
+#                                        +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported|GEOID+year,
+#                    data=oods_2018_2019,weights = oods_2018_2019$population)
+# summary(model_felm_entire_united_states)
+# 
+# library(stargazer)
+# stargazer(model_felm_entire_united_states, type = "latex", 
+#           title = "Entire United States Two way fixed effect model")
+# 
+# 
+# 
+# library(coefplot)
+# coefplot(model_felm_entire_united_states, coefficients = c("deaths_social_porximity","deaths_spatial_proximity"),color = "green",)
+# 
+# 
