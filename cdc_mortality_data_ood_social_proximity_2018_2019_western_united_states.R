@@ -476,73 +476,73 @@ colnames(state_fentanyl_count_per_capita)[3] <- "stnchsxo"
 cdc_mort_data_fips_wise_death_certificates <- left_join(cdc_mort_data_fips_wise_death_certificates,
                                                         state_fentanyl_count_per_capita, by="stnchsxo")
 
-cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,28,2:29)]
 
-cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(29)]
+cdc_mort_data_fips_wise_death_certificates  <- cdc_mort_data_fips_wise_death_certificates [,c(1,29,2:30)]
 
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-c(30)]
 #### renaming columns###
-colnames(cdc_mort_data_fips_wise_death_certificates)[26] <- "Naloxone_Available"
-colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "ODR"
-colnames(cdc_mort_data_fips_wise_death_certificates)[28] <- "Buprenorphine_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[27] <- "Naloxone_Available"
+colnames(cdc_mort_data_fips_wise_death_certificates)[28] <- "ODR"
+colnames(cdc_mort_data_fips_wise_death_certificates)[29] <- "Buprenorphine_Available"
 colnames(cdc_mort_data_fips_wise_death_certificates)[4] <- "deaths"
 colnames(cdc_mort_data_fips_wise_death_certificates)[9] <- "deaths_social_porximity"
 colnames(cdc_mort_data_fips_wise_death_certificates)[10] <- "deaths_spatial_proximity"
 #### write csv ###
 write.csv(cdc_mort_data_fips_wise_death_certificates, "western_united_stated_mort_data.csv")
 
-#### linear model ###
-summary(lm_model_western_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                    ACS_PCT_HU_NO_VEH+
-                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
-                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                                  data = cdc_mort_data_fips_wise_death_certificates, 
-                                  weights = population))
-library(sandwich)
-library(lmtest)
-lm_model_western_us  <- coeftest(lm_model_western_us , vcov = vcovCL, 
-                                 cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-lm_model_western_us 
-### write.csv a_i_j and w_i_j
-write.csv(w_i_j,'w_i_j_western.csv')
-write.csv(a_i_j,'a_i_j_western.csv')
-
-
-#### g2sls##
-X_n  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
-# Assuming X_n is your matrix of exogenous variables
-# Assuming X_n is your variable matrix (which should be defined similar to the way w_i_j and a_i_j are defined)
-# You need to compute the following matrices:
-W1n_squared <- w_i_j %*% w_i_j# This is W_{1n}^2
-W2n_squared <- a_i_j %*% a_i_j
-W2n_W1n <- a_i_j %*% w_i_j      # This is W_{2n} W_{1n}
-W1n_W2n <- w_i_j %*% a_i_j
-# Now, you need to calculate the instrument variables by multiplying these weights by X_n
-IV_W1n_Xn <- w_i_j %*% X_n      # This is W_{1n} X_n
-IV_W2n_Xn <- a_i_j %*% X_n      # This is W_{2n} X_n
-IV_W1n_squared_Xn <- W1n_squared %*% X_n  # This is W_{1n}^2 X_n
-IV_W2n_squared_Xn <- W2n_squared %*% X_n #This is W_{2n}^2 X_n
-IV_W1n_W2n_Xn <- W1n_W2n %*% X_n         # # This is W_{1n} W_{1n} X_n
-IV_W2n_W1n_Xn <- W2n_W1n %*% X_n          # This is W_{2n} W_{1n} X_n
-
-# Combine all instrument variables to create the IV matrix for SARAR(2,1)
-Q_n <- cbind(X_n, IV_W1n_Xn, IV_W2n_Xn, IV_W1n_squared_Xn, IV_W2n_squared_Xn,IV_W1n_W2n_Xn,IV_W2n_W1n_Xn)
-
-library("ivreg")  # For ivreg
-
-# Given that you already have the matrix X_n, and w_i_j (W1), a_i_j (W2) weights matrices,
-# and the instrument matrix Q_n, you would proceed as follows:
-
-y <- cdc_mort_data_fips_wise_death_certificates$deaths_per_capita
-s_i <- cdc_mort_data_fips_wise_death_certificates$deaths_social_porximity
-d_i <- cdc_mort_data_fips_wise_death_certificates$deaths_spatial_proximity
-# Define the formula for ivreg
-# The dependent variable y is regressed on the exogenous variables (X_n),
-# and the endogenous spatial lags (s_i and d_i)
-# The | symbol separates the model variables from the instruments in Q_n
-# Fit the SARAR(2,1) model using ivreg
-sarar_ivreg_model_western_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n, weight=population)
-summary(sarar_ivreg_model_western_america)
-coeftest(sarar_ivreg_model_western_america,vcov. = vcovHAC(sarar_ivreg_model_western_america))
+# #### linear model ###
+# summary(lm_model_western_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                     ACS_PCT_HU_NO_VEH+
+#                                     POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                     ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                     +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
+#                                   +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                                   data = cdc_mort_data_fips_wise_death_certificates, 
+#                                   weights = population))
+# library(sandwich)
+# library(lmtest)
+# lm_model_western_us  <- coeftest(lm_model_western_us , vcov = vcovCL, 
+#                                  cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+# lm_model_western_us 
+# ### write.csv a_i_j and w_i_j
+# write.csv(w_i_j,'w_i_j_western.csv')
+# write.csv(a_i_j,'a_i_j_western.csv')
+# 
+# 
+# #### g2sls##
+# X_n  <- as.matrix(cdc_mort_data_fips_wise_death_certificates[,c(11:22)])
+# # Assuming X_n is your matrix of exogenous variables
+# # Assuming X_n is your variable matrix (which should be defined similar to the way w_i_j and a_i_j are defined)
+# # You need to compute the following matrices:
+# W1n_squared <- w_i_j %*% w_i_j# This is W_{1n}^2
+# W2n_squared <- a_i_j %*% a_i_j
+# W2n_W1n <- a_i_j %*% w_i_j      # This is W_{2n} W_{1n}
+# W1n_W2n <- w_i_j %*% a_i_j
+# # Now, you need to calculate the instrument variables by multiplying these weights by X_n
+# IV_W1n_Xn <- w_i_j %*% X_n      # This is W_{1n} X_n
+# IV_W2n_Xn <- a_i_j %*% X_n      # This is W_{2n} X_n
+# IV_W1n_squared_Xn <- W1n_squared %*% X_n  # This is W_{1n}^2 X_n
+# IV_W2n_squared_Xn <- W2n_squared %*% X_n #This is W_{2n}^2 X_n
+# IV_W1n_W2n_Xn <- W1n_W2n %*% X_n         # # This is W_{1n} W_{1n} X_n
+# IV_W2n_W1n_Xn <- W2n_W1n %*% X_n          # This is W_{2n} W_{1n} X_n
+# 
+# # Combine all instrument variables to create the IV matrix for SARAR(2,1)
+# Q_n <- cbind(X_n, IV_W1n_Xn, IV_W2n_Xn, IV_W1n_squared_Xn, IV_W2n_squared_Xn,IV_W1n_W2n_Xn,IV_W2n_W1n_Xn)
+# 
+# library("ivreg")  # For ivreg
+# 
+# # Given that you already have the matrix X_n, and w_i_j (W1), a_i_j (W2) weights matrices,
+# # and the instrument matrix Q_n, you would proceed as follows:
+# 
+# y <- cdc_mort_data_fips_wise_death_certificates$deaths_per_capita
+# s_i <- cdc_mort_data_fips_wise_death_certificates$deaths_social_porximity
+# d_i <- cdc_mort_data_fips_wise_death_certificates$deaths_spatial_proximity
+# # Define the formula for ivreg
+# # The dependent variable y is regressed on the exogenous variables (X_n),
+# # and the endogenous spatial lags (s_i and d_i)
+# # The | symbol separates the model variables from the instruments in Q_n
+# # Fit the SARAR(2,1) model using ivreg
+# sarar_ivreg_model_western_america <- ivreg::ivreg(y ~ X_n + s_i + d_i |Q_n, weight=population)
+# summary(sarar_ivreg_model_western_america)
+# coeftest(sarar_ivreg_model_western_america,vcov. = vcovHAC(sarar_ivreg_model_western_america))
 

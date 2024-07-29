@@ -524,98 +524,98 @@ write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_entire_united_c
 saveRDS(lw_1_entire_us, file="lw_1_entire_us.rds")
 
 
-cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
-cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,-1]
-
-#### nbr ###
-library(MASS)
-summary(nb_1_entire_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
-                                   ACS_PCT_HU_NO_VEH+
-                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
-                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                      data = cdc_mort_data_fips_wise_death_certificates,weights=population,
-                      control = glm.control(maxit = 1000)))
-
-#### negative binomial regression ####
-nb_1_clustered_std_error_entire_us <- coeftest(nb_1_entire_us,vcov = vcovCL,
-                                     cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-nb_1_clustered_std_error_entire_us
-
-
-library(stargazer)
-stargazer(nb_1_entire_us, nb_1_clustered_std_error_entire_us , type = "latex", 
-          title = "Negative Binomial Model with and without Clustered SE")
-
-#### linear regression ####
-column_names <- names(cdc_mort_data_fips_wise_death_certificates)[11:24]
-
-lm_model_entire_us <- lm(
-  deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
-    ACS_PCT_UNEMPLOY + ODR + Naloxone_Available + Buprenorphine_Available + 
-    St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
-    ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
-    AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_MALE + ACS_PCT_WHITE +
-    ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI, 
-  data = cdc_mort_data_fips_wise_death_certificates, 
-  weights = population
-)
-
-# Summary of the updated model
-summary(lm_model_entire_us)
-
-library(sandwich)
-library(lmtest)
-lm_clustered_error_entire_us <- coeftest(lm_model_entire_us, vcov = vcovCL, 
-                               cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-lm_clustered_error_entire_us
-
-
-stargazer(lm_model_entire_us, lm_clustered_error_entire_us, type = "latex", 
-          title = "Linear Regression with and without Clustered SE")
-
+# cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
+# cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,-1]
+# 
+# #### nbr ###
+# library(MASS)
+# summary(nb_1_entire_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                    ACS_PCT_HU_NO_VEH+
+#                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
+#                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                       data = cdc_mort_data_fips_wise_death_certificates,weights=population,
+#                       control = glm.control(maxit = 1000)))
+# 
+# #### negative binomial regression ####
+# nb_1_clustered_std_error_entire_us <- coeftest(nb_1_entire_us,vcov = vcovCL,
+#                                      cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+# nb_1_clustered_std_error_entire_us
+# 
+# 
+# library(stargazer)
+# stargazer(nb_1_entire_us, nb_1_clustered_std_error_entire_us , type = "latex", 
+#           title = "Negative Binomial Model with and without Clustered SE")
+# 
+# #### linear regression ####
+# column_names <- names(cdc_mort_data_fips_wise_death_certificates)[11:24]
+# 
+# lm_model_entire_us <- lm(
+#   deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity +
+#     ACS_PCT_UNEMPLOY + ODR + Naloxone_Available + Buprenorphine_Available + 
+#     St_count_illicit_opioid_reported + ACS_PCT_HU_NO_VEH + POS_MEAN_DIST_ALC +
+#     ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + ACS_MEDIAN_HH_INC + CCBP_BWLSTORES_RATE +
+#     AMFAR_MHFAC_RATE + ACS_MEDIAN_AGE + ACS_PCT_MALE + ACS_PCT_WHITE +
+#     ACS_PCT_ASIAN + ACS_PCT_AIAN + ACS_PCT_NHPI, 
+#   data = cdc_mort_data_fips_wise_death_certificates, 
+#   weights = population
+# )
+# 
+# # Summary of the updated model
+# summary(lm_model_entire_us)
+# 
+# library(sandwich)
+# library(lmtest)
+# lm_clustered_error_entire_us <- coeftest(lm_model_entire_us, vcov = vcovCL, 
+#                                cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+# lm_clustered_error_entire_us
+# 
+# 
+# stargazer(lm_model_entire_us, lm_clustered_error_entire_us, type = "latex", 
+#           title = "Linear Regression with and without Clustered SE")
+# 
 
 #### autocorrelation model ###
 ### network ####
-library(spdep)
- library(spatialreg)
- network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                         ACS_PCT_HU_NO_VEH+
-                                         POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                         ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                         +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
-                                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                                               data=cdc_mort_data_fips_wise_death_certificates,
-                                               listw = lw_1,
-                                               zero.policy = TRUE,
-                                               tol.solve = 1*exp(-50)
- )
+# library(spdep)
+#  library(spatialreg)
+#  network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                          ACS_PCT_HU_NO_VEH+
+#                                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                          ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
+#                                        +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                                                data=cdc_mort_data_fips_wise_death_certificates,
+#                                                listw = lw_1,
+#                                                zero.policy = TRUE,
+#                                                tol.solve = 1*exp(-50)
+#  )
+# # 
+#  summary(network_autocorrelation)
+# # #### spatial ####
+#  diag(a_i_j) <- 0
+#  write.table(a_i_j, file = "a_i_j.txt", row.names = FALSE, col.names = FALSE)
+#  
+# lw_2_entire_us <- mat2listw(a_i_j, style='W')
+# write.nb.gal(lw_2_entire_us$neighbours, "wdat.gal")
 # 
- summary(network_autocorrelation)
-# #### spatial ####
- diag(a_i_j) <- 0
- write.table(a_i_j, file = "a_i_j.txt", row.names = FALSE, col.names = FALSE)
- 
-lw_2_entire_us <- mat2listw(a_i_j, style='W')
-write.nb.gal(lw_2_entire_us$neighbours, "wdat.gal")
-
-write.listw(lw_2_entire_us, "spatial_weights.gal")
- 
- spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                         ACS_PCT_HU_NO_VEH+
-                                         POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                         ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                         +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
-                                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                                       data=cdc_mort_data_fips_wise_death_certificates,
-                                       listw = lw_2,
-                                       zero.policy = TRUE,
-                                       tol.solve = 1*exp(-50)
- )
- summary(spatial_autocorrelation)
-
-
-stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
-          title = "Autocorrelation Models")
+# write.listw(lw_2_entire_us, "spatial_weights.gal")
+#  
+#  spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                          ACS_PCT_HU_NO_VEH+
+#                                          POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                          ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                          +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE
+#                                        +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                                        data=cdc_mort_data_fips_wise_death_certificates,
+#                                        listw = lw_2,
+#                                        zero.policy = TRUE,
+#                                        tol.solve = 1*exp(-50)
+#  )
+#  summary(spatial_autocorrelation)
+# 
+# 
+# stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
+#           title = "Autocorrelation Models")
 

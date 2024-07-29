@@ -508,122 +508,122 @@ cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_f
 write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_2018_2019_cdc_eastern_united_states.csv')
 
 
-#### nbr ###
-library(MASS)
-summary(nb1_eastern_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
-                                 ACS_PCT_HU_NO_VEH+
-                                   POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                   ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                   +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
-                      +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                      data = cdc_mort_data_fips_wise_death_certificates,weights=population,
-                      control = glm.control(maxit = 500)))
-
-# Display coefficients and clustered standard errors
-nb_1_clustered_std_error_eastern_us <- coeftest(nb1_eastern_us,vcov = vcovCL,
-                                     cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-nb_1_clustered_std_error_eastern_us
-
-library(stargazer)
-stargazer(nb1_eastern_us, nb_1_clustered_std_error_eastern_us, type = "latex", 
-          title = "Negative Binomial Model with and without Clustered SE")
-
-
-
-
-#### lm 1#### 
-summary(lm_model_eastern_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                    ACS_PCT_HU_NO_VEH+
-                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
-                                  +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
-                       data = cdc_mort_data_fips_wise_death_certificates, 
-                       weights = population))
-
-library(sandwich)
-library(lmtest)
-lm_clustered_error_eastern_us <- coeftest(lm_model_eastern_us , vcov = vcovCL, 
-                               cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
-lm_clustered_error_eastern_us
-stargazer(lm_model_eastern_us, lm_clustered_error_eastern_us, type = "latex", 
-          title = "Linear Regression with and without Clustered SE")
-
-
-
-################# spatial reg #####
-library(spdep)
-library(spatialreg)
-network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                        ACS_PCT_HU_NO_VEH+
-                                        POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                        ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                        +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
-                                        +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
-           data=cdc_mort_data_fips_wise_death_certificates,
-           listw = lw_1_eastern_united_states,
-           zero.policy = TRUE,
-           na.action = na.omit,
-           tol.solve = 1*exp(-50)
-)
-
-
-
-####storing the distance matrix weight spatial format ###
-diag(a_i_j) <- 0
-lw_2_eastern_united_states <- mat2listw(a_i_j,style='W')
-saveRDS(lw_1_eastern_united_states, file="lw_1_eastern_us.rds")
-saveRDS(lw_2_eastern_united_states, file="lw_2_eastern_us.rds")
-
-
-
-summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
-                                                ACS_PCT_HU_NO_VEH+
-                                                POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
-                                                ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
-                                                +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
-                                                +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
-                                              data=cdc_mort_data_fips_wise_death_certificates,
-                                              listw = lw_2,
-                                              zero.policy = TRUE,
-                                              na.action = na.omit,
-                                              tol.solve = 1*exp(-50)
-))
-
-
-stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
-          title = "Autocorrelation Models for the counties in the Eastern United States")
-
-
-#######################
-# Load your dataset
-# You should replace the below line with the actual loading of your dataset
-# cdc_mort_data_fips_wise_death_certificates <- read.csv("path_to_your_data.csv")
-
-# Extract the variables for correlation plot
-selected_vars <- cdc_mort_data_fips_wise_death_certificates[, c("deaths_per_capita", 
-                                                                "deaths_social_porximity", 
-                                                                "deaths_spatial_proximity", 
-                                                                "ACS_PCT_UNEMPLOY", 
-                                                                "ACS_PCT_LT_HS", 
-                                                                "ACS_PCT_PERSON_INC_BELOW99", 
-                                                                "ACS_PCT_HU_NO_VEH", 
-                                                                "POS_MEAN_DIST_ALC", 
-                                                                "ACS_PCT_OTHER_INS", 
-                                                                "ODR", 
-                                                                "Naloxone_Available")]
-
-library(PerformanceAnalytics)
-
-chart.Correlation(selected_vars, histogram = TRUE, method = "pearson")
-
-
-
-
-write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_easter_united_states_2018_2019.csv')
-
-write.csv(w_i_j,'w_i_j_eastern.csv')
-write.csv(a_i_j,'a_i_j_eastern.csv')
-
-
+# #### nbr ###
+# library(MASS)
+# summary(nb1_eastern_us <- glm.nb(deaths ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                  ACS_PCT_HU_NO_VEH+
+#                                    POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                    ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                    +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+ offset(log(population))
+#                       +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                       data = cdc_mort_data_fips_wise_death_certificates,weights=population,
+#                       control = glm.control(maxit = 500)))
+# 
+# # Display coefficients and clustered standard errors
+# nb_1_clustered_std_error_eastern_us <- coeftest(nb1_eastern_us,vcov = vcovCL,
+#                                      cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+# nb_1_clustered_std_error_eastern_us
+# 
+# library(stargazer)
+# stargazer(nb1_eastern_us, nb_1_clustered_std_error_eastern_us, type = "latex", 
+#           title = "Negative Binomial Model with and without Clustered SE")
+# 
+# 
+# 
+# 
+# #### lm 1#### 
+# summary(lm_model_eastern_us <- lm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                     ACS_PCT_HU_NO_VEH+
+#                                     POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                     ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                     +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+#                                   +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported, 
+#                        data = cdc_mort_data_fips_wise_death_certificates, 
+#                        weights = population))
+# 
+# library(sandwich)
+# library(lmtest)
+# lm_clustered_error_eastern_us <- coeftest(lm_model_eastern_us , vcov = vcovCL, 
+#                                cluster = ~ cdc_mort_data_fips_wise_death_certificates$stnchsxo)
+# lm_clustered_error_eastern_us
+# stargazer(lm_model_eastern_us, lm_clustered_error_eastern_us, type = "latex", 
+#           title = "Linear Regression with and without Clustered SE")
+# 
+# 
+# 
+# ################# spatial reg #####
+# library(spdep)
+# library(spatialreg)
+# network_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                         ACS_PCT_HU_NO_VEH+
+#                                         POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                         ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                         +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+#                                         +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
+#            data=cdc_mort_data_fips_wise_death_certificates,
+#            listw = lw_1_eastern_united_states,
+#            zero.policy = TRUE,
+#            na.action = na.omit,
+#            tol.solve = 1*exp(-50)
+# )
+# 
+# 
+# 
+# ####storing the distance matrix weight spatial format ###
+# diag(a_i_j) <- 0
+# lw_2_eastern_united_states <- mat2listw(a_i_j,style='W')
+# saveRDS(lw_1_eastern_united_states, file="lw_1_eastern_us.rds")
+# saveRDS(lw_2_eastern_united_states, file="lw_2_eastern_us.rds")
+# 
+# 
+# 
+# summary(spatial_autocorrelation <- errorsarlm(deaths_per_capita ~ deaths_social_porximity + deaths_spatial_proximity+
+#                                                 ACS_PCT_HU_NO_VEH+
+#                                                 POS_MEAN_DIST_ALC+ACS_PCT_OTHER_INS+
+#                                                 ACS_PCT_LT_HS+AHRF_TOT_COM_HEALTH_GRANT+ACS_MEDIAN_HH_INC+
+#                                                 +CCBP_BWLSTORES_RATE+AMFAR_MHFAC_RATE+
+#                                                 +ODR+ Naloxone_Available +Buprenorphine_Available+St_count_illicit_opioid_reported,
+#                                               data=cdc_mort_data_fips_wise_death_certificates,
+#                                               listw = lw_2,
+#                                               zero.policy = TRUE,
+#                                               na.action = na.omit,
+#                                               tol.solve = 1*exp(-50)
+# ))
+# 
+# 
+# stargazer(network_autocorrelation, spatial_autocorrelation, type = "latex", 
+#           title = "Autocorrelation Models for the counties in the Eastern United States")
+# 
+# 
+# #######################
+# # Load your dataset
+# # You should replace the below line with the actual loading of your dataset
+# # cdc_mort_data_fips_wise_death_certificates <- read.csv("path_to_your_data.csv")
+# 
+# # Extract the variables for correlation plot
+# selected_vars <- cdc_mort_data_fips_wise_death_certificates[, c("deaths_per_capita", 
+#                                                                 "deaths_social_porximity", 
+#                                                                 "deaths_spatial_proximity", 
+#                                                                 "ACS_PCT_UNEMPLOY", 
+#                                                                 "ACS_PCT_LT_HS", 
+#                                                                 "ACS_PCT_PERSON_INC_BELOW99", 
+#                                                                 "ACS_PCT_HU_NO_VEH", 
+#                                                                 "POS_MEAN_DIST_ALC", 
+#                                                                 "ACS_PCT_OTHER_INS", 
+#                                                                 "ODR", 
+#                                                                 "Naloxone_Available")]
+# 
+# library(PerformanceAnalytics)
+# 
+# chart.Correlation(selected_vars, histogram = TRUE, method = "pearson")
+# 
+# 
+# 
+# 
+# write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_easter_united_states_2018_2019.csv')
+# 
+# write.csv(w_i_j,'w_i_j_eastern.csv')
+# write.csv(a_i_j,'a_i_j_eastern.csv')
+# 
+# 
 
