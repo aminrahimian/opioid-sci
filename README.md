@@ -1,6 +1,6 @@
 ### OPIOID-SCI
 
-This project offers a collection of R scripts designed to estimate the effect size of deaths within social proximity. These scripts utilize various statistical models, including Linear Regression, Spatial Error Model, and Two-way Fixed Effects, to conduct the analysis. Additionally, the scripts include guidance on how to extract data from data.census.gov using the "tidycensus" package. The project also encompasses detailed instructions on generating plots from the statistical models and exploratory analysis.
+This project offers a collection of R scripts designed to estimate the effect size of deaths within social proximity. These scripts utilize various statistical models, including linear regression, spatial error model, and two-way fixed effects, to conduct the analysis. Additionally, the scripts include guidance on how to extract data from data.census.gov using the "tidycensus" package. The project also encompasses detailed instructions on generating plots from the statistical models and exploratory analysis.
 
 ## getting started
 - RStudio 2022.12.0+353 "Elsbeth Geranium" 
