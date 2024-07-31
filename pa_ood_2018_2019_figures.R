@@ -421,7 +421,7 @@ ggplot() +
 #### social-spatial proximity #######
 pa_ood_2018_2019 <- pa_ood_2018_2019 %>% 
   mutate(diff_social_spatial_proximity= 
-           abs((deaths_in_social_proximity- deaths_in_spatial_proximity)))
+           (deaths_in_social_proximity- deaths_in_spatial_proximity))
 library(dplyr)
 diff_social_spatial_proximity <- pa_ood_2018_2019 %>% dplyr::select(GEOID,diff_social_spatial_proximity,deaths_per_capita)
 diff_social_spatial_proximity$GEOID <- as.numeric(diff_social_spatial_proximity$GEOID)
