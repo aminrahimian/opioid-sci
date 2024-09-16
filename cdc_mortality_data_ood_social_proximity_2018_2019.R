@@ -499,11 +499,61 @@ fips_to_update <- c("36005", "36047", "36061", "36081", "36085")
 cdc_mort_data_fips_wise_death_certificates$stnchsxo[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- "NY"
 cdc_mort_data_fips_wise_death_certificates$St_count_illicit_opioid_reported[cdc_mort_data_fips_wise_death_certificates$GEOID %in% fips_to_update] <- 4.179372e-05
 
+#### population density ####
+counties <- counties(year = 2018, cb = TRUE)
+# Calculate area in square kilometers
+counties <- st_transform(counties, crs = 5070)  # Transform to Albers Equal Area for accurate area calculation
+counties <- counties %>%
+  mutate(area_sq_km = as.numeric(st_area(geometry)) / 1e6)  # Convert area to square kilometers
+
+counties <- counties %>% filter(GEOID %in% cdc_mort_data_fips_wise_death_certificates$GEOID) %>% select(c("GEOID", "area_sq_km"))
+cdc_mort_data_fips_wise_death_certificates <- merge(cdc_mort_data_fips_wise_death_certificates,counties,by="GEOID")
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates %>% mutate(population_density=population/area_sq_km)
+
+#### frequent mental health distress clinical covariate #####
+### https://www.countyhealthrankings.org/health-data/methodology-and-sources/data-documentation/national-data-documentation-2010-2022
+mental_health_distress <- read.csv("https://www.countyhealthrankings.org/sites/default/files/media/document/analytic_data2019.csv")
+mental_health_distress <- mental_health_distress  %>% dplyr::select("X5.digit.FIPS.Code", "Frequent.mental.distress.raw.value")
+colnames(mental_health_distress)[1] <- "GEOID"
+colnames(mental_health_distress)[2] <- "frequent_mental_health_distress"
+mental_health_distress <- mental_health_distress[-c(1,2),]
+mental_health_distress <- mental_health_distress %>% filter(GEOID %in% cdc_mort_data_fips_wise_death_certificates$GEOID)
+cdc_mort_data_fips_wise_death_certificates <- merge(cdc_mort_data_fips_wise_death_certificates,mental_health_distress,by="GEOID")
+### political affilation ###
+
+#url <- "https://raw.githubusercontent.com/tonmcg/US_County_Level_Election_Results_08-20/master/2016_US_County_Level_Presidential_Results.csv"
+
+# Reading the CSV file directly from the GitHub repository
+election_data <- read_csv("https://raw.githubusercontent.com/tonmcg/US_County_Level_Election_Results_08-20/master/2016_US_County_Level_Presidential_Results.csv")
+
+### filtering counties in the western united states ###
+# Convert county names to lowercase to avoid case sensitivity issues
+# Assuming your dataset is called 'election_data' and the FIPS codes are in the 'combined_fips' column
+election_data$combined_fips <- str_pad(election_data$combined_fips, width = 5, pad = "0")
+
+### shanon county renamed Oglala Lakota County, SD new fips 46102###
+election_data <- election_data %>% mutate(combined_fips = ifelse(combined_fips == 46113, 46102, combined_fips))
+
+
+## filtering for western state counties ###
+election_data <- election_data %>% filter(combined_fips %in% cdc_mort_data_fips_wise_death_certificates$GEOID )
+
+## mutating 0 and 1 based on election results ###
+election_data <- election_data %>% mutate(political_affiliation= ifelse(votes_gop>votes_dem,1,0))
+
+### selecting geoid and political affiliation ###
+election_data <- election_data %>% dplyr::select("combined_fips","political_affiliation")
+colnames(election_data)[1] <- "GEOID"
+
+### merge data ###
+cdc_mort_data_fips_wise_death_certificates <- merge(cdc_mort_data_fips_wise_death_certificates, election_data, by="GEOID")
+
 
 #### scale population####
 cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_fips_wise_death_certificates$population, 
                                                                  to=c(0,1))
 
+### for library'C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/mort_data_2018_2019_cdc_eastern_united_states.csv.')
 
 write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_2018_2019_cdc_eastern_united_states.csv')
 
