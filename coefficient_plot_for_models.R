@@ -29,12 +29,12 @@ cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_
 #### linear regression ####
 summary(lm_model_entire_us <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                   CCBP_BWLSTORES_RATE + 
-                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                                   ACS_PCT_NHPI, 
+                                   St_count_illicit_opioid_reported +population_density
+                                 +frequent_mental_health_distress
+                                 +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                   POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                   ACS_PCT_AIAN + 
+                                   ACS_PCT_NHPI,
                                  data = cdc_mort_data_fips_wise_death_certificates_entire_us, 
                                  weights = population))
 
@@ -49,11 +49,11 @@ lw_2_entire_us <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analy
 
 network_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                              ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                             St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                                             POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                                             CCBP_BWLSTORES_RATE + 
-                                                             ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                             St_count_illicit_opioid_reported +population_density
+                                                           +frequent_mental_health_distress
+                                                           +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                                             POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                                             ACS_PCT_AIAN + 
                                                              ACS_PCT_NHPI, 
                                       data=cdc_mort_data_fips_wise_death_certificates_entire_us,
                                       listw = lw_1_entire_us,
@@ -65,11 +65,11 @@ summary(network_autocorrelation_entire_united_states)
 # #### spatial ####
 spatial_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                              ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                             St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                                             POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                                             ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                                             CCBP_BWLSTORES_RATE + 
-                                                             ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                             St_count_illicit_opioid_reported +population_density
+                                                           +frequent_mental_health_distress
+                                                           +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                                             POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                                             ACS_PCT_AIAN + 
                                                              ACS_PCT_NHPI, 
                                       data=cdc_mort_data_fips_wise_death_certificates_entire_us,
                                       listw = lw_2_entire_us,
@@ -80,15 +80,14 @@ summary(spatial_autocorrelation_entire_united_states)
 
 ### fixed effect model ###
 oods_2018_2019_entire_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_entire_us/entire_united_states_fixed_effect_model.csv')
-
-model_felm_entire_united_states<- felm(deaths_per_capita~ ODR + scale(deaths_social_porximity) + scale(deaths_spatial_proximity) + 
+model_felm_entire_united_states<- felm(deaths_per_capita ~ ODR+scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                          Naloxone_Available + Buprenorphine_Available + 
-                                         St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                         POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                         ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                         CCBP_BWLSTORES_RATE + 
-                                         ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                                         ACS_PCT_NHPI|GEOID+year,
+                                         St_count_illicit_opioid_reported +population_density
+                                       +frequent_mental_health_distress
+                                       +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                         POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                         ACS_PCT_AIAN + 
+                                         ACS_PCT_NHPI|stnchsxo+year,
                                        data=oods_2018_2019_entire_united_states,weights = oods_2018_2019_entire_united_states$population)
 summary(model_felm_entire_united_states)
 
@@ -146,11 +145,11 @@ cdc_mort_data_fips_wise_death_certificates_eastern_us <- cdc_mort_data_fips_wise
 ### linear model ###
 summary(lm_model_eastern_us <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                     ODR + Naloxone_Available + Buprenorphine_Available + 
-                                    St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                    POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                    ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                    CCBP_BWLSTORES_RATE + 
-                                    ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                    St_count_illicit_opioid_reported +population_density
+                                  +frequent_mental_health_distress
+                                  +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                    POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                    ACS_PCT_AIAN + 
                                     ACS_PCT_NHPI, 
                                   data = cdc_mort_data_fips_wise_death_certificates_eastern_us, weights = population 
                                   ))
@@ -163,11 +162,11 @@ lw_1_eastern_united_states <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Dat
 lw_2_eastern_united_states <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/lw_2_eastern_us.rds")
 network_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                                   CCBP_BWLSTORES_RATE + 
-                                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                   St_count_illicit_opioid_reported +population_density
+                                                 +frequent_mental_health_distress
+                                                 +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                                   POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                                   ACS_PCT_AIAN + 
                                                    ACS_PCT_NHPI, 
                                       data=cdc_mort_data_fips_wise_death_certificates_eastern_us ,
                                       listw = lw_1_eastern_united_states,
@@ -178,11 +177,11 @@ network_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ scale(death
 
 summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                                           POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                                           CCBP_BWLSTORES_RATE + 
-                                                           ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                           St_count_illicit_opioid_reported +population_density
+                                                         +frequent_mental_health_distress
+                                                         +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                                           POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                                           ACS_PCT_AIAN + 
                                                            ACS_PCT_NHPI,
                                                          data=cdc_mort_data_fips_wise_death_certificates_eastern_us,
                                               listw = lw_2_eastern_united_states,
@@ -193,15 +192,14 @@ summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ sca
 
 #### fixed effect models eastern united states###
 oods_2018_2019_eastern_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_eastern_us/eastern_united_states_fixed_effect_model.csv')
-model_felm_eastern_united_states<- felm(deaths_per_capita ~ ODR +  scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
-                                          Naloxone_Available + Buprenorphine_Available + 
-                                          St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                          POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                          ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                          CCBP_BWLSTORES_RATE + 
-                                          ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                                          ACS_PCT_NHPI
-                                        |GEOID+year,
+model_felm_eastern_united_states<- felm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+                                          ODR + Naloxone_Available + Buprenorphine_Available + 
+                                          St_count_illicit_opioid_reported +population_density
+                                        +frequent_mental_health_distress
+                                        +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                          POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                          ACS_PCT_AIAN + 
+                                          ACS_PCT_NHPI|stnchsxo+year,
                                         data=oods_2018_2019_eastern_united_states,weights = oods_2018_2019_eastern_united_states$population)
 summary(model_felm_eastern_united_states)
 
@@ -260,11 +258,11 @@ scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us
 
 lm_western <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                   CCBP_BWLSTORES_RATE + 
-                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                   St_count_illicit_opioid_reported +population_density
+                 +frequent_mental_health_distress
+                 +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                   POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                   ACS_PCT_AIAN + 
                    ACS_PCT_NHPI,data =cdc_mort_data_fips_wise_death_certificates_western_us,
                  weight=scaled_population_west )
 
@@ -280,11 +278,11 @@ lm_western_clustered_std_error
 #### network autocorrelation ####
 network_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                                   CCBP_BWLSTORES_RATE + 
-                                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                   St_count_illicit_opioid_reported +population_density
+                                                 +frequent_mental_health_distress
+                                                 +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                                   POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                                   ACS_PCT_AIAN + 
                                                    ACS_PCT_NHPI,
                                                  data= cdc_mort_data_fips_wise_death_certificates_western_us,
                                                  listw = lw_1_western_us,
@@ -297,11 +295,11 @@ summary(network_autocorrelation_western_us)
 #### spatial autocorrelation ####
 summary(spatial_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                                                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                                           POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                                           CCBP_BWLSTORES_RATE + 
-                                                           ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                                           St_count_illicit_opioid_reported +population_density
+                                                         +frequent_mental_health_distress
+                                                         +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                                           POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                                           ACS_PCT_AIAN + 
                                                            ACS_PCT_NHPI,
                                                          data= cdc_mort_data_fips_wise_death_certificates_western_us,
                                                          listw = lw_2_western_us,
@@ -314,14 +312,14 @@ stargazer(network_autocorrelation_western_us,spatial_autocorrelation_western_us,
           title = "Autocorrelation")
 ##### two way fixed effect ####
 oods_2018_2019_western_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/panel_western.csv')
-model_felm_western_united_states <- felm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
-                                           ODR + Naloxone_Available + Buprenorphine_Available + 
-                                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                           POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                           CCBP_BWLSTORES_RATE + 
-                                           ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                                           ACS_PCT_NHPI|GEOID+year,
+model_felm_western_united_states <- felm(deaths_per_capita ~ ODR + scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+                                            Naloxone_Available + Buprenorphine_Available + 
+                                           St_count_illicit_opioid_reported +population_density
+                                         +frequent_mental_health_distress
+                                         +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                           POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                           ACS_PCT_AIAN + 
+                                           ACS_PCT_NHPI|stnchsxo+year,
                                         data=oods_2018_2019_western_united_states,weights = oods_2018_2019_western_united_states$population)
 summary(model_felm_western_united_states)
 stargazer(model_felm_western_united_states, type = "latex", 
@@ -333,18 +331,16 @@ cdc_mort_data_fips_wise_death_certificates_western_us_selected_covariates_from_l
     Naloxone_Available,
     Buprenorphine_Available,
     St_count_illicit_opioid_reported,
+    population_density,
+    frequent_mental_health_distress,
+    political_affiliation,
     ACS_PCT_UNEMPLOY,
-    ACS_PCT_HU_NO_VEH,
+    ACS_MEDIAN_HH_INC,
     POS_MEAN_DIST_ALC,
-    ACS_PCT_OTHER_INS,
-    ACS_PCT_LT_HS,
-    AHRF_TOT_COM_HEALTH_GRANT,
-    CCBP_BWLSTORES_RATE,
     ACS_PCT_ASIAN,
     ACS_PCT_AIAN,
-    ACS_PCT_NHPI
 )
-X_n_western  <- as.matrix(cdc_mort_data_fips_wise_death_certificates_western_us_selected_covariates_from_lasso[,c(1:14)])
+X_n_western  <- as.matrix(cdc_mort_data_fips_wise_death_certificates_western_us_selected_covariates_from_lasso[,c(1:12)])
 
 # Compute the matrices
 W1n_squared_western <- w_i_j_western %*% w_i_j_western # This is W_{1n}^2
@@ -462,11 +458,11 @@ cdc_mort_data_fips_wise_death_certificates_western_us$fitted_spatial_proximity <
 # Second stage: Use predicted values in the main regression
 second_stage_wu <- ivreg(deaths_per_capita ~ fitted_social_proximity + fitted_spatial_proximity +
                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                           POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                           CCBP_BWLSTORES_RATE + 
-                           ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                           St_count_illicit_opioid_reported + population_density
+                         +frequent_mental_health_distress
+                         +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                           POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                           ACS_PCT_AIAN + 
                            ACS_PCT_NHPI, 
                               data =  cdc_mort_data_fips_wise_death_certificates_western_us)
 # Print the results
@@ -496,19 +492,17 @@ cdc_mort_data_fips_wise_death_certificates_eastern_us_selected_covariates_from_l
     Naloxone_Available,
     Buprenorphine_Available,
     St_count_illicit_opioid_reported,
+    population_density,
+    frequent_mental_health_distress,
+    political_affiliation,
     ACS_PCT_UNEMPLOY,
-    ACS_PCT_HU_NO_VEH,
+    ACS_MEDIAN_HH_INC,
     POS_MEAN_DIST_ALC,
-    ACS_PCT_OTHER_INS,
-    ACS_PCT_LT_HS,
-    AHRF_TOT_COM_HEALTH_GRANT,
-    CCBP_BWLSTORES_RATE,
     ACS_PCT_ASIAN,
     ACS_PCT_AIAN,
-    ACS_PCT_NHPI
   )
 
-X_n_eastern <- as.matrix(cdc_mort_data_fips_wise_death_certificates_eastern_us_selected_covariates_from_lasso[,c(1:14)])
+X_n_eastern <- as.matrix(cdc_mort_data_fips_wise_death_certificates_eastern_us_selected_covariates_from_lasso[,c(1:12)])
 
 
 # Compute the matrices for Eastern US
@@ -556,11 +550,11 @@ cdc_mort_data_fips_wise_death_certificates_eastern_us$fitted_spatial_proximity <
 # Second stage: Use predicted values in the main regression
 second_stage_eu <- ivreg(deaths_per_capita ~ fitted_social_proximity + fitted_spatial_proximity +
                            ODR + Naloxone_Available + Buprenorphine_Available + 
-                           St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                           POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                           ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                           CCBP_BWLSTORES_RATE + 
-                           ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                           St_count_illicit_opioid_reported + population_density
+                         +frequent_mental_health_distress
+                         +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                           POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                           ACS_PCT_AIAN + 
                            ACS_PCT_NHPI, 
                          data =  cdc_mort_data_fips_wise_death_certificates_eastern_us)
 # Print the results
@@ -617,19 +611,17 @@ cdc_mort_data_fips_wise_death_certificates_entire_us_selected_covariates_from_la
     Naloxone_Available,
     Buprenorphine_Available,
     St_count_illicit_opioid_reported,
+    population_density,
+    frequent_mental_health_distress,
+    political_affiliation,
     ACS_PCT_UNEMPLOY,
-    ACS_PCT_HU_NO_VEH,
+    ACS_MEDIAN_HH_INC,
     POS_MEAN_DIST_ALC,
-    ACS_PCT_OTHER_INS,
-    ACS_PCT_LT_HS,
-    AHRF_TOT_COM_HEALTH_GRANT,
-    CCBP_BWLSTORES_RATE,
     ACS_PCT_ASIAN,
     ACS_PCT_AIAN,
-    ACS_PCT_NHPI
   )
 
-X_n_us <- as.matrix(cdc_mort_data_fips_wise_death_certificates_entire_us_selected_covariates_from_lasso[,c(1:14)])
+X_n_us <- as.matrix(cdc_mort_data_fips_wise_death_certificates_entire_us_selected_covariates_from_lasso[,c(1:12)])
 
 
 # Compute the matrices for the entire U.S.
@@ -675,11 +667,11 @@ cdc_mort_data_fips_wise_death_certificates_entire_us$fitted_spatial_proximity <-
 # Second stage: Use predicted values in the main regression
 second_stage_entire_us <- ivreg(deaths_per_capita ~ fitted_social_proximity + fitted_spatial_proximity +
                                   ODR + Naloxone_Available + Buprenorphine_Available + 
-                                  St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                  POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                  ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                  CCBP_BWLSTORES_RATE + 
-                                  ACS_PCT_ASIAN + ACS_PCT_AIAN + 
+                                  St_count_illicit_opioid_reported + population_density
+                                +frequent_mental_health_distress
+                                +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                  POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                  ACS_PCT_AIAN + 
                                   ACS_PCT_NHPI, 
                       data =  cdc_mort_data_fips_wise_death_certificates_entire_us)
 # Print the results
