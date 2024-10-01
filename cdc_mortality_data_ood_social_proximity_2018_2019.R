@@ -554,7 +554,7 @@ cdc_mort_data_fips_wise_death_certificates$population <- rescale(cdc_mort_data_f
                                                                  to=c(0,1))
 
 ### for library'C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/mort_data_2018_2019_cdc_eastern_united_states.csv.')
-
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-32]
 write.csv(cdc_mort_data_fips_wise_death_certificates, 'mort_data_2018_2019_cdc_eastern_united_states.csv')
 
 

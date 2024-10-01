@@ -540,6 +540,7 @@ colnames(election_data)[1] <- "GEOID"
 cdc_mort_data_fips_wise_death_certificates <- merge(cdc_mort_data_fips_wise_death_certificates, election_data, by="GEOID")
 
 #### write csv ###
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-32]
 write.csv(cdc_mort_data_fips_wise_death_certificates, "western_united_stated_mort_data.csv")
 
 # #### linear model ###

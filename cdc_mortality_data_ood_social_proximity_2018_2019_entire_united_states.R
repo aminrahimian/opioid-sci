@@ -565,7 +565,7 @@ colnames(election_data)[1] <- "GEOID"
 ### merge data ###
 cdc_mort_data_fips_wise_death_certificates <- merge(cdc_mort_data_fips_wise_death_certificates, election_data, by="GEOID")
 
-
+cdc_mort_data_fips_wise_death_certificates <- cdc_mort_data_fips_wise_death_certificates[,-32]
 
 
 #### scale population####
