@@ -584,6 +584,81 @@ colnames(health_determinant_covariates_2018)[1] <- "GEOID"
 colnames(health_determinant_covariates)[1] <- "GEOID"
 oods_2018 <- left_join(oods_2018, health_determinant_covariates_2018, by="GEOID")
 oods_2019 <- left_join(oods_2019, health_determinant_covariates, by="GEOID")
+
+### #### population desnity 2018###
+counties_2018 <- counties(year = 2018, cb = TRUE)
+# Calculate area in square kilometers
+counties_2018 <- st_transform(counties, crs = 5070)  # Transform to Albers Equal Area for accurate area calculation
+counties_2018 <- counties_2018 %>%
+  mutate(area_sq_km = as.numeric(st_area(geometry)) / 1e6)  # Convert area to square kilometers
+
+counties_2018 <- counties_2018 %>% filter(GEOID %in% oods_2018$GEOID) %>% select(c("GEOID", "area_sq_km"))
+oods_2018  <- left_join(oods_2018 ,counties_2018,by="GEOID")
+oods_2018  <- oods_2018 %>% mutate(population_density=population/area_sq_km)
+
+### #### population desnity 2019###
+counties_2019 <- counties(year = 2019, cb = TRUE)
+# Calculate area in square kilometers
+counties_2019 <- st_transform(counties, crs = 5070)  # Transform to Albers Equal Area for accurate area calculation
+counties_2019 <- counties_2019 %>%
+  mutate(area_sq_km = as.numeric(st_area(geometry)) / 1e6)  # Convert area to square kilometers
+
+counties_2019 <- counties_2019 %>% filter(GEOID %in% oods_2019$GEOID) %>% select(c("GEOID", "area_sq_km"))
+oods_2019  <- left_join(oods_2019 ,counties_2019,by="GEOID")
+oods_2019  <- oods_2019 %>% mutate(population_density=population/area_sq_km)
+
+#### frequent mental health distress clinical covariate 2018 ###
+mental_health_distress_2018 <- read.csv("https://www.countyhealthrankings.org/sites/default/files/analytic_data2018_0.csv")
+mental_health_distress_2018 <- mental_health_distress_2018  %>% dplyr::select("X5.digit.FIPS.Code", "Frequent.mental.distress.raw.value")
+colnames(mental_health_distress_2018)[1] <- "GEOID"
+colnames(mental_health_distress_2018)[2] <- "frequent_mental_health_distress_2018"
+mental_health_distress_2018 <- mental_health_distress_2018[-c(1,2),]
+mental_health_distress_2018 <- mental_health_distress_2018 %>% filter(GEOID %in% oods_2018$GEOID)
+oods_2018 <- left_join(oods_2018,mental_health_distress_2018,by="GEOID")
+colnames(oods_2018)[34] <- "frequent_mental_health_distress"
+
+#### frequent mental health distress clinical covariate #####
+### https://www.countyhealthrankings.org/health-data/methodology-and-sources/data-documentation/national-data-documentation-2010-2022
+mental_health_distress_2019<- read.csv("https://www.countyhealthrankings.org/sites/default/files/media/document/analytic_data2019.csv")
+mental_health_distress_2019 <- mental_health_distress_2019  %>% dplyr::select("X5.digit.FIPS.Code", "Frequent.mental.distress.raw.value")
+colnames(mental_health_distress_2019)[1] <- "GEOID"
+colnames(mental_health_distress_2019)[2] <- "frequent_mental_health_distress_2019"
+mental_health_distress_2019 <- mental_health_distress_2019[-c(1,2),]
+mental_health_distress_2019 <- mental_health_distress_2019 %>% filter(GEOID %in% oods_2019$GEOID)
+oods_2019 <- left_join(oods_2019,mental_health_distress_2019,by="GEOID")
+colnames(oods_2019)[34] <- "frequent_mental_health_distress"
+### political affilation ###
+
+#url <- "https://raw.githubusercontent.com/tonmcg/US_County_Level_Election_Results_08-20/master/2016_US_County_Level_Presidential_Results.csv"
+
+# Reading the CSV file directly from the GitHub repository
+election_data <- read_csv("https://raw.githubusercontent.com/tonmcg/US_County_Level_Election_Results_08-20/master/2016_US_County_Level_Presidential_Results.csv")
+
+### filtering counties in the western united states ###
+# Convert county names to lowercase to avoid case sensitivity issues
+# Assuming your dataset is called 'election_data' and the FIPS codes are in the 'combined_fips' column
+election_data$combined_fips <- str_pad(election_data$combined_fips, width = 5, pad = "0")
+
+### shanon county renamed Oglala Lakota County, SD new fips 46102###
+election_data <- election_data %>% mutate(combined_fips = ifelse(combined_fips == 46113, 46102, combined_fips))
+
+
+## filtering for western state counties ###
+election_data <- election_data %>% filter(combined_fips %in% oods_2018$GEOID )
+
+## mutating 0 and 1 based on election results ###
+election_data <- election_data %>% mutate(political_affiliation= ifelse(votes_gop>votes_dem,1,0))
+
+### selecting geoid and political affiliation ###
+election_data <- election_data %>% dplyr::select("combined_fips","political_affiliation")
+colnames(election_data)[1] <- "GEOID"
+
+oods_2018 <- left_join(oods_2018,election_data,by="GEOID")
+oods_2019 <- left_join(oods_2019,election_data,by="GEOID")
+
+
+
+
 ## panel_data ###
 oods_2018_2019 <- rbind(oods_2018,oods_2019)
 colnames(oods_2018_2019)[3] <- "year"
@@ -595,8 +670,8 @@ colnames(oods_2018_2019)[9] <- "deaths_social_porximity"
 colnames(oods_2018_2019)[10] <- "deaths_spatial_proximity"
 
 ### write.csv###
-
-write.csv(oods_2018_2019,'entire_united_states_fixed_effect_model.csv')
+oods_2018_2019 <- oods_2018_2019[,-32]
+write.csv(oods_2018_2019,'C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_entire_us/entire_united_states_fixed_effect_model.csv')
 #### fixed effects model ###
 
 # library(lfe)
