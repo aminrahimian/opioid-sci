@@ -138,15 +138,45 @@ row_sums <- rowSums(w_sk_matrix, na.rm = TRUE)
 # Since w_ss = 0, the row sums should be 1
 print(row_sums)
 ### state wise death rates ###
-state_death_rates <- cdc_mort_data_fips_wise_death_certificates_entire_us %>% select("stnchsxo","GEOID","deaths_per_capita") 
-state_death_rates$deaths_per_capita <- as.numeric(state_death_rates$deaths_per_capita)
+state_death_rates <- cdc_mort_data_fips_wise_death_certificates_entire_us %>% select("stnchsxo","GEOID","deaths") 
+state_death_rates$deaths<- as.numeric(state_death_rates$deaths)
 
+### adding population to the data set ###
+# Get FIPS codes for all states
+united_states <- c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
+                   "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", 
+                   "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", 
+                   "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", 
+                   "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY")
+
+Soc.2019 <-  get_estimates(geography = "county", year=2018, product = "population",state=united_states, geometry = TRUE)
+# get_acs(geography = "county", year=2019, variables = (c(pop="B01003_001")),
+#state=eastern_states, survey="acs5", geometry = TRUE)
+Soc.2019 <- Soc.2019 %>% filter(variable=="POP")
+Soc.2019 <- Soc.2019 %>% separate(NAME, into = c("County", "State"), sep = ", ")
+
+
+fips_code <- tidycensus::fips_codes
+fips_code <- fips_code %>% filter(state %in% c("AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
+                                               "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", 
+                                               "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", 
+                                               "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC", "SD", 
+                                               "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY"))
+fips_code$GEOID <- paste0(fips_code$state_code, fips_code$county_code)
+
+Soc.2019 <- merge(fips_code,Soc.2019, by="GEOID")
+Soc.2019 <- Soc.2019 %>% select("GEOID","value")
+### population ###
+state_death_rates <- merge(state_death_rates,Soc.2019)
+colnames(state_death_rates)[4] <- "population"
 # Proceed with grouping and summarising
 state_death_rates_new <- state_death_rates %>%
   group_by(stnchsxo) %>%
-  summarise(mean_death_rate = mean(deaths_per_capita, na.rm = TRUE))
+  summarise(mean_death_rate = sum(deaths, na.rm = TRUE) / sum(population, na.rm = TRUE))
+
 
 state_death_rates_new <- merge(state_death_rates_new, states_info, by="stnchsxo")
+state_death_rates_new$mean_death_rate <- state_death_rates_new$mean_death_rate*100000
 
 ### calculating s minus i for states ###
 v <- state_death_rates_new$mean_death_rate
@@ -233,21 +263,21 @@ ggplot(data = state_death_rates_new_ca ) +
 ### mean death rates ####
 state_death_rates_new_map <- state_death_rates_new
 state_death_rates_new_map <- st_as_sf(state_death_rates_new_map)
-state_death_rates_new_map <- state_death_rates_new_map %>% mutate(mean_death_rate_per_hnrd= mean_death_rate*1000,00)
+state_death_rates_new_map <- state_death_rates_new_map %>% mutate(mean_death_rate_per_hnrd= mean_death_rate)
 ggplot(data = state_death_rates_new_map ) +
   geom_sf(aes(fill = mean_death_rate_per_hnrd)) +
   scale_fill_viridis_c(option = "viridis",direction = 1) +
   theme_minimal() +
   ggtitle("Death Rates in US States")
 ### social proximity ###
-state_death_rates_new_map <- state_death_rates_new_map %>% mutate(deaths_social_proximity_per_hndrd= deaths_social_proximity*1000,00)
+state_death_rates_new_map <- state_death_rates_new_map %>% mutate(deaths_social_proximity_per_hndrd= deaths_social_proximity)
 ggplot(data = state_death_rates_new_map ) +
   geom_sf(aes(fill = deaths_social_proximity_per_hndrd)) +
   scale_fill_viridis_c(option = "viridis",direction = 1) +
   theme_minimal() +
   ggtitle("Social proximity in US States")
 ### spatial proximity ###
-state_death_rates_new_map <- state_death_rates_new_map %>% mutate(deaths_spatial_proximity_per_hndrd= deaths_spatial_proximity*1000,00)
+state_death_rates_new_map <- state_death_rates_new_map %>% mutate(deaths_spatial_proximity_per_hndrd= deaths_spatial_proximity)
 ggplot(data = state_death_rates_new_map ) +
   geom_sf(aes(fill = deaths_spatial_proximity_per_hndrd)) +
   scale_fill_viridis_c(option = "viridis",direction = 1) +
