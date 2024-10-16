@@ -27,7 +27,8 @@ cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_
 #                                                cluster = ~ cdc_mort_data_fips_wise_death_certificates_entire_us$stnchsxo)
 # nb_1_clustered_std_error_entire_us
 #### linear regression ####
-summary(lm_model_entire_us <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+one_hundrd_thsnd <- 100000
+summary(lm_model_entire_us <- lm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                    ODR + Naloxone_Available + Buprenorphine_Available + 
                                    St_count_illicit_opioid_reported +population_density
                                  +frequent_mental_health_distress
@@ -42,12 +43,14 @@ summary(lm_model_entire_us <- lm(deaths_per_capita ~ scale(deaths_social_porximi
 lm_clustered_error_entire_us <- coeftest(lm_model_entire_us, vcov = vcovCL, 
                                          cluster = ~ cdc_mort_data_fips_wise_death_certificates_entire_us$stnchsxo)
 lm_clustered_error_entire_us
+
+stargazer(lm_model_entire_us, lm_clustered_error_entire_us)
 #### autocorrelation model ###
 ### network ####
 lw_1_entire_us <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/lw_1_entire_us.rds")
 lw_2_entire_us <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/lw_2_entire_us.rds")
 
-network_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+network_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                              ODR + Naloxone_Available + Buprenorphine_Available + 
                                                              St_count_illicit_opioid_reported +population_density
                                                            +frequent_mental_health_distress
@@ -63,7 +66,7 @@ network_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ s
 # 
 summary(network_autocorrelation_entire_united_states)
 # #### spatial ####
-spatial_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+spatial_autocorrelation_entire_united_states <- errorsarlm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                              ODR + Naloxone_Available + Buprenorphine_Available + 
                                                              St_count_illicit_opioid_reported +population_density
                                                            +frequent_mental_health_distress
@@ -80,6 +83,7 @@ summary(spatial_autocorrelation_entire_united_states)
 
 ### fixed effect model ###
 oods_2018_2019_entire_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_entire_us/entire_united_states_fixed_effect_model.csv')
+oods_2018_2019_entire_united_states <- oods_2018_2019_entire_united_states %>% mutate(deaths_per_capita= deaths_per_capita*one_hundrd_thsnd)
 model_felm_entire_united_states<- felm(deaths_per_capita ~ ODR+scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                          Naloxone_Available + Buprenorphine_Available + 
                                          St_count_illicit_opioid_reported +population_density
@@ -101,14 +105,18 @@ my_plot <- modelplot(list(lm_clustered_error_entire_us,
                           model_felm_entire_united_states),
                      coef_omit = c(-2,-3),
                      draw = TRUE)
-# Modify the plot
+
 my_plot <- my_plot + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+  theme(
+    panel.grid.major = element_blank(),   # Remove major grid lines
+    panel.grid.minor = element_blank(),   # Remove minor grid lines
+    panel.background = element_blank(),   # Remove panel background
+    axis.line = element_blank(),          # Remove axis lines
+    axis.ticks = element_line(size = 1),           # Ensure axis ticks are visible
+    axis.ticks.length = unit(0.3, "cm"),  
+    axis.text = element_text(size = 18) 
+  ) +
+  geom_vline(xintercept = 0, color = "black")  # Ensure the vertical line at zero remains
 
 
 my_plot <- my_plot + 
@@ -118,7 +126,22 @@ my_plot <- my_plot +
                                 "spatial_autocorrelation",
                                 "two_way_fixed_effect"),values = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3")) # replace #colorN with actual color codes or names
 
+my_plot <- my_plot +
+  theme(
+    legend.title = element_blank(),  # Increase legend title size
+    legend.text = element_text(size = 12),   # Increase legend text size
+    axis.title = element_text(size = 14),    # Increase both axis titles size
+    axis.text = element_text(size = 12)      # Increase axis tick labels size (if needed)
+  )
+
+my_plot <- my_plot + 
+  scale_x_continuous(breaks = c(0, 5, 10, 15))
+
+
+
 print(my_plot)
+
+
 
 ##### eastern united states#####
 ### loading eastern united states data ##
@@ -143,7 +166,7 @@ cdc_mort_data_fips_wise_death_certificates_eastern_us <- cdc_mort_data_fips_wise
 # nb_1_clustered_std_error_eastern_us
 
 ### linear model ###
-summary(lm_model_eastern_us <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+summary(lm_model_eastern_us <- lm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                     ODR + Naloxone_Available + Buprenorphine_Available + 
                                     St_count_illicit_opioid_reported +population_density
                                   +frequent_mental_health_distress
@@ -160,7 +183,7 @@ lm_clustered_error_eastern_us <- coeftest(lm_model_eastern_us , vcov = vcovCL,
 ### network and spatial autocorrelation models###
 lw_1_eastern_united_states <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/lw_1_eastern_us.rds")
 lw_2_eastern_united_states <- readRDS("C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/lw_2_eastern_us.rds")
-network_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+network_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                    ODR + Naloxone_Available + Buprenorphine_Available + 
                                                    St_count_illicit_opioid_reported +population_density
                                                  +frequent_mental_health_distress
@@ -175,7 +198,7 @@ network_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ scale(death
                                       tol.solve = 1*exp(-50),
 )
 
-summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                            ODR + Naloxone_Available + Buprenorphine_Available + 
                                                            St_count_illicit_opioid_reported +population_density
                                                          +frequent_mental_health_distress
@@ -192,8 +215,10 @@ summary(spatial_autocorrelation_eastern_us <- errorsarlm(deaths_per_capita ~ sca
 
 #### fixed effect models eastern united states###
 oods_2018_2019_eastern_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Fixed_effect_panel_data_eastern_us/eastern_united_states_fixed_effect_model.csv')
-model_felm_eastern_united_states<- felm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
-                                          ODR + Naloxone_Available + Buprenorphine_Available + 
+oods_2018_2019_eastern_united_states <- oods_2018_2019_eastern_united_states %>% mutate(deaths_per_capita= deaths_per_capita*one_hundrd_thsnd)
+
+model_felm_eastern_united_states<- felm(deaths_per_capita ~ ODR+scale(deaths_social_porximity) + scale(deaths_spatial_proximity) 
+                                           + Naloxone_Available + Buprenorphine_Available + 
                                           St_count_illicit_opioid_reported +population_density
                                         +frequent_mental_health_distress
                                         +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
@@ -212,13 +237,18 @@ my_plot_2 <- modelplot(list(lm_clustered_error_eastern_us,
                      coef_omit = c(-2,-3))
 
 
+
 my_plot_2 <- my_plot_2 + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+  theme(
+    panel.grid.major = element_blank(),   # Remove major grid lines
+    panel.grid.minor = element_blank(),   # Remove minor grid lines
+    panel.background = element_blank(),   # Remove panel background
+    axis.line = element_blank(),          # Remove axis lines
+    axis.ticks = element_line(size = 1),           # Ensure axis ticks are visible
+    axis.ticks.length = unit(0.3, "cm"),  
+    axis.text = element_text(size = 18) 
+  ) +
+  geom_vline(xintercept = 0, color = "black")  # Ensure the vertical line at zero remains
 
 
 my_plot_2 <- my_plot_2 + 
@@ -227,6 +257,19 @@ my_plot_2 <- my_plot_2 +
                                 "network_autocorrelation",
                                 "spatial_autocorrelation",
                                 "two_way_fixed_effect"),values = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3")) # replace #colorN with actual color codes or names
+
+my_plot_2 <- my_plot_2 +
+  theme(
+    legend.title = element_blank(),  # Increase legend title size
+    legend.text = element_text(size = 12),   # Increase legend text size
+    axis.title = element_text(size = 14),    # Increase both axis titles size
+    axis.text = element_text(size = 12)      # Increase axis tick labels size (if needed)
+  )
+
+my_plot_2 <- my_plot_2 + 
+  scale_x_continuous(breaks = c(0, 5, 10, 15))
+
+
 
 print(my_plot_2)
 
@@ -256,7 +299,7 @@ max_population_west <- max(cdc_mort_data_fips_wise_death_certificates_western_us
 scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us$population - min_population_west) / (max_population_west - min_population_west)
 
 
-lm_western <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+lm_western <- lm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                    ODR + Naloxone_Available + Buprenorphine_Available + 
                    St_count_illicit_opioid_reported +population_density
                  +frequent_mental_health_distress
@@ -276,7 +319,7 @@ lm_western_clustered_std_error
 
 
 #### network autocorrelation ####
-network_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+network_autocorrelation_western_us <- errorsarlm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                    ODR + Naloxone_Available + Buprenorphine_Available + 
                                                    St_count_illicit_opioid_reported +population_density
                                                  +frequent_mental_health_distress
@@ -293,7 +336,7 @@ network_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ scale(death
 
 summary(network_autocorrelation_western_us)
 #### spatial autocorrelation ####
-summary(spatial_autocorrelation_western_us <- errorsarlm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
+summary(spatial_autocorrelation_western_us <- errorsarlm(deaths_per_capita*one_hundrd_thsnd ~ scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                                            ODR + Naloxone_Available + Buprenorphine_Available + 
                                                            St_count_illicit_opioid_reported +population_density
                                                          +frequent_mental_health_distress
@@ -312,6 +355,8 @@ stargazer(network_autocorrelation_western_us,spatial_autocorrelation_western_us,
           title = "Autocorrelation")
 ##### two way fixed effect ####
 oods_2018_2019_western_united_states <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Western United States/panel_western.csv')
+oods_2018_2019_western_united_states <- oods_2018_2019_western_united_states %>% mutate(deaths_per_capita= deaths_per_capita*one_hundrd_thsnd)
+
 model_felm_western_united_states <- felm(deaths_per_capita ~ ODR + scale(deaths_social_porximity) + scale(deaths_spatial_proximity) +
                                             Naloxone_Available + Buprenorphine_Available + 
                                            St_count_illicit_opioid_reported +population_density
@@ -405,13 +450,17 @@ my_plot_west <- modelplot(list(lm_western_clustered_std_error,
                        coef_omit = c(-2,-3))
 
 
-my_plot_west <- my_plot_west + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+my_plot_west <-  my_plot_west + 
+  theme(
+    panel.grid.major = element_blank(),   # Remove major grid lines
+    panel.grid.minor = element_blank(),   # Remove minor grid lines
+    panel.background = element_blank(),   # Remove panel background
+    axis.line = element_blank(),          # Remove axis lines
+    axis.ticks = element_line(size = 1),           # Ensure axis ticks are visible
+    axis.ticks.length = unit(0.3, "cm"),  
+    axis.text = element_text(size = 18) 
+  ) +
+  geom_vline(xintercept = 0, color = "black")  # Ensure the vertical line at zero remains
 
 
 my_plot_west <- my_plot_west + 
@@ -421,7 +470,37 @@ my_plot_west <- my_plot_west +
                                 "spatial_autocorrelation",
                                 "two_way_fixed_effect"),values = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3")) # replace #colorN with actual color codes or names
 
+my_plot_west <- my_plot_west +
+  theme(
+    legend.title = element_blank(),  # Increase legend title size
+    legend.text = element_text(size = 12),   # Increase legend text size
+    axis.title = element_text(size = 14),    # Increase both axis titles size
+    axis.text = element_text(size = 12)      # Increase axis tick labels size (if needed)
+  )
+
+my_plot_west <- my_plot_west + 
+  scale_x_continuous(breaks = c(0, 5, 10, 15))
+
+
+
 print(my_plot_west)
+
+### combining three plots together ###
+library(patchwork)
+
+combined_plot <- my_plot_west+my_plot+my_plot_2
+# Increase base text size for better readability
+ combined_plot <- combined_plot & theme(text = element_text(size = 30))
+
+# Define the filename and path
+filename <- "combined_plot_after_adjustment.pdf"  # Use .pdf for vector format
+
+# Save the plot
+ggsave(filename = filename, plot = combined_plot,
+       device = "pdf",              # Use "pdf" for vector format
+       width = 35, height = 10,      # Width and height in inches
+       units = "in",                # Units: "in", "cm", or "mm"
+       dpi = 300)       
 
 
 # # Modify the plot
@@ -454,6 +533,8 @@ first_stage_spatial_wu<- ivreg(scale(cdc_mort_data_fips_wise_death_certificates_
 cdc_mort_data_fips_wise_death_certificates_western_us$fitted_social_proximity <- fitted(first_stage_social_wu)
 cdc_mort_data_fips_wise_death_certificates_western_us$fitted_spatial_proximity <- fitted(first_stage_spatial_wu)
 
+cdc_mort_data_fips_wise_death_certificates_western_us <- cdc_mort_data_fips_wise_death_certificates_western_us %>% 
+                                                              mutate(deaths_per_capita=deaths_per_capita*one_hundrd_thsnd)
 
 # Second stage: Use predicted values in the main regression
 second_stage_wu <- ivreg(deaths_per_capita ~ fitted_social_proximity + fitted_spatial_proximity +
@@ -476,6 +557,8 @@ eu_wu
 # Reading and preprocessing data for Eastern US
 cdc_mort_data_fips_wise_death_certificates_eastern_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/mort_data_2018_2019_cdc_eastern_united_states.csv')
 cdc_mort_data_fips_wise_death_certificates_eastern_us <- cdc_mort_data_fips_wise_death_certificates_eastern_us[,c(-1,-21)]
+cdc_mort_data_fips_wise_death_certificates_eastern_us <- cdc_mort_data_fips_wise_death_certificates_eastern_us %>% 
+                                                                                mutate(deaths_per_capita=deaths_per_capita*one_hundrd_thsnd)
 
 w_i_j_eastern <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Eastern United States/w_i_j_eastern.csv')
 w_i_j_eastern <- w_i_j_eastern[,-1]
@@ -591,7 +674,7 @@ eu_eu
 cdc_mort_data_fips_wise_death_certificates_entire_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/mort_data_entire_united_cdc_2018_2019.csv')
 cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us[,c(-1,-21)]
 
-
+cdc_mort_data_fips_wise_death_certificates_entire_us <- cdc_mort_data_fips_wise_death_certificates_entire_us %>% mutate(deaths_per_capita=deaths_per_capita*one_hundrd_thsnd)
 w_i_j_us <- read.csv('C:/Users/kusha/Desktop/Data for Paper/Data From Analysis/Entire United States/w_i_j_entire_us.csv')
 w_i_j_us <- w_i_j_us [,-1]
 w_i_j_us <- as.matrix(w_i_j_us)
@@ -711,12 +794,14 @@ my_plot_6 <- modelplot(list(second_stage_eu,second_stage_wu,second_stage_entire_
                        draw = TRUE)
 # Modify the plot
 my_plot_6 <- my_plot_6 + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
-  geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
+  theme(
+    panel.grid.major = element_blank(),   # Remove major grid lines
+    panel.grid.minor = element_blank(),   # Remove minor grid lines
+    panel.background = element_blank(),   # Remove panel background
+    axis.line = element_blank(),          # Remove axis lines
+    axis.ticks = element_line()           # Ensure axis ticks are visible
+  ) +
+  geom_vline(xintercept = 0, color = "black")  # Ensure the vertical line at zero remains
 
 
 my_plot_6 <- my_plot_6 + 
@@ -725,7 +810,7 @@ my_plot_6 <- my_plot_6 +
                                 "2SLS Western-Central United States", "2SLS United States"),values = c("#e41a1c", "#377eb8","#4daf4a"))
 
 stargazer(second_stage_eu, second_stage_wu, second_stage_entire_us, type = "latex", 
-          title = "G2SLS", digits = 5)
+          title = "2SLS", digits = 5)
 # ##### nbr ####
 # my_plot_3 <- modelplot(list(nb_1_clustered_std_error_western_us,
 #                           nb_1_clustered_std_error_entire_us,
@@ -750,3 +835,5 @@ stargazer(second_stage_eu, second_stage_wu, second_stage_entire_us, type = "late
 #                                 "clusterd-robust NBR (Eastern US)"),values = c("#e41a1c", "#377eb8", "#4daf4a")) 
 # 
 # print(my_plot_3)
+
+
