@@ -206,35 +206,36 @@ cdc_mort_data_fips_wise_death_certificates_entire_us$spatial_proximity_alpha_1 <
 
 ### regressions ###
 ### entire untied states ###
-summary(lm_model_entire_us <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(spatial_proximity_alpha_1) +
-                                   ODR + Naloxone_Available + Buprenorphine_Available + 
-                                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                   CCBP_BWLSTORES_RATE + 
-                                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                                   ACS_PCT_NHPI, 
+one_hndrd_thsnd <- 100000
+summary(lm_model_entire_us_1 <- lm(deaths_per_capita*one_hndrd_thsnd ~ scale(deaths_social_porximity) + scale(spatial_proximity_alpha_1) +
+                                     ODR + Naloxone_Available + Buprenorphine_Available + 
+                                     St_count_illicit_opioid_reported +population_density
+                                   +frequent_mental_health_distress
+                                   +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                     POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                     ACS_PCT_AIAN + 
+                                     ACS_PCT_NHPI, 
                                  data = cdc_mort_data_fips_wise_death_certificates_entire_us, 
                                  weights = population))
 
 
-lm_clustered_error_entire_us <- coeftest(lm_model_entire_us, vcov = vcovCL, 
+lm_clustered_error_entire_us_1 <- coeftest(lm_model_entire_us_1, vcov = vcovCL, 
                                          cluster = ~ cdc_mort_data_fips_wise_death_certificates_entire_us$stnchsxo)
-lm_clustered_error_entire_us
+lm_clustered_error_entire_us_1
 
 
 
 
 
 #### eastern us ###
-summary(lm_model_eastern_us_1 <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(spatial_proximity_alpha_1) +
-                                    ODR + Naloxone_Available + Buprenorphine_Available + 
-                                    St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                                    POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                                    ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                                    CCBP_BWLSTORES_RATE + 
-                                    ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                                    ACS_PCT_NHPI, 
+summary(lm_model_eastern_us_1 <- lm(deaths_per_capita*one_hndrd_thsnd ~ scale(deaths_social_porximity) + scale(spatial_proximity_alpha_1) +
+                                      ODR + Naloxone_Available + Buprenorphine_Available + 
+                                      St_count_illicit_opioid_reported +population_density
+                                    +frequent_mental_health_distress
+                                    +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                                      POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                                      ACS_PCT_AIAN + 
+                                      ACS_PCT_NHPI, 
                                   data = cdc_mort_data_fips_wise_death_certificates_eastern_us, weights = population 
 ))
 
@@ -251,14 +252,14 @@ max_population_west <- max(cdc_mort_data_fips_wise_death_certificates_western_us
 scaled_population_west <- (cdc_mort_data_fips_wise_death_certificates_western_us$population - min_population_west) / (max_population_west - min_population_west)
 
 
-lm_western_1 <- lm(deaths_per_capita ~ scale(deaths_social_porximity) + scale(spatial_proximity_alpha_1) +
-                   ODR + Naloxone_Available + Buprenorphine_Available + 
-                   St_count_illicit_opioid_reported + ACS_PCT_UNEMPLOY + ACS_PCT_HU_NO_VEH + 
-                   POS_MEAN_DIST_ALC + ACS_PCT_OTHER_INS +
-                   ACS_PCT_LT_HS + AHRF_TOT_COM_HEALTH_GRANT + 
-                   CCBP_BWLSTORES_RATE + 
-                   ACS_PCT_ASIAN + ACS_PCT_AIAN + 
-                   ACS_PCT_NHPI,data =cdc_mort_data_fips_wise_death_certificates_western_us,
+lm_western_1 <- lm(deaths_per_capita*one_hndrd_thsnd ~ scale(deaths_social_porximity) + scale(spatial_proximity_alpha_1) +
+                     ODR + Naloxone_Available + Buprenorphine_Available + 
+                     St_count_illicit_opioid_reported +population_density
+                   +frequent_mental_health_distress
+                   +as.factor(political_affiliation)+ACS_PCT_UNEMPLOY + 
+                     POS_MEAN_DIST_ALC + ACS_MEDIAN_HH_INC + 
+                     ACS_PCT_AIAN + 
+                     ACS_PCT_NHPI,data =cdc_mort_data_fips_wise_death_certificates_western_us,
                  weight=scaled_population_west )
 
 
@@ -355,24 +356,30 @@ lm_western_clustered_std_error_1
 
 ## coefficient plot ###
 # Use modelplot to plot the selected modelss
-my_plot <- modelplot(list(lm_clustered_error_entire_us,
+my_plot <- modelplot(list(lm_clustered_error_entire_us_1,
                           lm_western_clustered_std_error_1,
                           lm_clustered_error_eastern_us_1),
                      coef_omit = c(-2,-3),
                      draw = TRUE)
-# Modify the plot
+
+
 my_plot <- my_plot + 
-  theme(panel.grid.major = element_blank(),  # Remove major grid lines
-        panel.grid.minor = element_blank(),  # Remove minor grid lines
-        panel.background = element_blank(),   # Remove panel background
-        axis.line = element_blank(),          # Remove axis lines
-        axis.ticks = element_blank()) +       # Remove axis ticks
+  theme(
+    panel.grid.major = element_blank(),   # Remove major grid lines
+    panel.grid.minor = element_blank(),   # Remove minor grid lines
+    panel.background = element_blank(),   # Remove panel background
+    axis.line = element_blank(),          # Remove axis lines
+    axis.ticks = element_line()           # Ensure axis ticks are visible
+  ) +       # Remove axis ticks
   geom_vline(xintercept = 0, color = "black") # Ensure the vertical line at zero remains
 
 my_plot <- my_plot + 
   labs(color = "Model Type") +
-  scale_color_manual(labels = c("cluster_robust_std_error_lm_entire_us",
+  scale_color_manual(labels = c("cluster robust linear regressio",
                                 "cluster_robust_std_error_lm_western_us",
                                 "lm_clustered_error_eastern_us_1"),values = c("#e41a1c", "#377eb8", "#4daf4a")) # replace #colorN with actual color codes or names
 
+# Modify the plot
+my_plot <- my_plot + 
+  scale_x_continuous(breaks = c(0, 5, 10, 15))
 print(my_plot)
